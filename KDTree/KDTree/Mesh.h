@@ -24,6 +24,8 @@ public:
     vector<unsigned int> indices;
 	unsigned int VAO;
 
+    Mesh();
+
     Mesh(vector<Vertex> vertices, vector<unsigned int> indices);
 
     const void Draw();

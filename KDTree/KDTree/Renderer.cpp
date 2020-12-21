@@ -12,10 +12,11 @@
 #include <sstream>
 #include <iostream>
 
-Renderer::Renderer() :
-    AmbientColor(0.7f, 0.7f, 0.7f), DiffuseColor(0.7f, 0.7f, 0.7f), SpecularColor(0.1f, 0.1f, 0.1f), Shininess(16.0f),  _shader("default.vert", "default.frag"), Lit(true), CastShadow(true), ReceiveShadow(true)
+Renderer::Renderer():
+    AmbientColor(0.7f, 0.7f, 0.7f), DiffuseColor(0.7f, 0.7f, 0.7f), SpecularColor(0.1f, 0.1f, 0.1f), Shininess(32.0f), Unlit(false), _shader("default.vert", "default.frag")
 {
     SystemManager::RendererSystem.AddComponent(this);
+    loadModel();
 }
 Renderer::~Renderer()
 {
@@ -26,97 +27,23 @@ void Renderer::SetModel(string const& path)
     loadModel(path);
 }
 
-void Renderer::SetTextures(char const* diffuseMapPath, char const* normalMapPath) {
-    
-    glGenTextures(1, &_diffuseMap);
-    glBindTexture(GL_TEXTURE_2D, _diffuseMap);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    int width, height, nrChannels;
-
-    unsigned char* diffuseData = stbi_load(diffuseMapPath, &width, &height, &nrChannels, 0);
-    if (diffuseData)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, diffuseData);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        _diffuseSet = true;
-    }
-    else
-    {
-        std::cout << "Failed to load diffuse texture" << std::endl;
-    }
-    stbi_image_free(diffuseData);
-
-    glGenTextures(1, &_normalMap);
-    glBindTexture(GL_TEXTURE_2D, _normalMap);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    unsigned char* normalData = stbi_load(normalMapPath, &width, &height, &nrChannels, 0);
-    if (normalData)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, normalData);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        _normalSet = true;
-    }
-    else
-    {
-        std::cout << "Failed to load normal texture" << std::endl;
-    }
-    stbi_image_free(normalData);
-}
 
 void Renderer::Update()
 {
     _shader.use();
+    _shader.setVec3("light.position", SystemManager::LightSystem.GetFirstLight()->GetOwner()->transform.Position);
     _shader.setVec3("viewPos", SystemManager::CameraSystem.ActiveCamera()->GetOwner()->transform.Position);
-
-
-    //set light properties, depthmap and planes inside shader
-    auto lights = SystemManager::LightSystem.GetLights();
-    for (int i = 0; i < lights.size(); i++) {
-        _shader.setVec3(("lights["+std::to_string(i)+"].position"), lights[i]->GetOwner()->transform.Position);
-        _shader.setVec3("lights[" + std::to_string(i) + "].ambient", lights[i]->AmbientColor);
-        _shader.setVec3("lights[" + std::to_string(i) + "].diffuse", lights[i]->DiffuseColor);
-        _shader.setVec3("lights[" + std::to_string(i) + "].specular", lights[i]->SpecularColor); 
-        _shader.setFloat("lights[" + std::to_string(i) + "].constant", lights[i]->Constant); 
-        _shader.setFloat("lights[" + std::to_string(i) + "].linear", lights[i]->Linear);
-        _shader.setFloat("lights[" + std::to_string(i) + "].quadratic", lights[i]->Quadratic);
-        _shader.setFloat("farPlanes[" + std::to_string(i) + "]", lights[i]->GetFarPlane());
-        _shader.setInt("depthMap"+ std::to_string(i), i);
-        glActiveTexture(GL_TEXTURE0+i);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, lights[i]->GetDepthMap());
-    }
-    
-    //bind textures
-    glActiveTexture(GL_TEXTURE0 + lights.size());
-    glBindTexture(GL_TEXTURE_2D, _diffuseMap);
-    _shader.setInt("diffuseMap", lights.size());
-    _shader.setInt("diffuseSet", _diffuseSet);
-    glActiveTexture(GL_TEXTURE0 + lights.size()+1);
-    glBindTexture(GL_TEXTURE_2D, _normalMap);
-    _shader.setInt("normalMap", lights.size() + 1);
-    _shader.setInt("normalSet", _normalSet);
-
-    _shader.setFloat("normalStrength", SystemManager::RendererSystem.NormalStrength);
-
+    // light properties
+    _shader.setVec3("light.ambient", SystemManager::LightSystem.GetFirstLight()->AmbientColor);
+    _shader.setVec3("light.diffuse", SystemManager::LightSystem.GetFirstLight()->DiffuseColor);
+    _shader.setVec3("light.specular", SystemManager::LightSystem.GetFirstLight()->SpecularColor);
 
     // material properties
     _shader.setVec3("material.ambient", AmbientColor);
     _shader.setVec3("material.diffuse", DiffuseColor);
     _shader.setVec3("material.specular", SpecularColor);
     _shader.setFloat("material.shininess", Shininess);
-    _shader.setInt("material.lit", Lit);
-    _shader.setInt("receiveShadows", ReceiveShadow);
-
-   
+    _shader.setBool("material.unlit", Unlit);
 
     // view/projection transformations
     glm::mat4 projection = glm::perspective(glm::radians(SystemManager::CameraSystem.ActiveCamera()->Zoom), (float)InputManager::SCR_WIDTH / (float)InputManager::SCR_HEIGHT, 0.1f, 100.0f);
@@ -125,21 +52,19 @@ void Renderer::Update()
     _shader.setMat4("view", view);
 
     // world transformation
-    Render(_shader);
-}
-
-//render object
-void Renderer::Render(const Shader &shader)
-{
     glm::mat4 model = glm::mat4(1.0);
     model = glm::translate(model, _owner->transform.Position);
     model *= glm::toMat4(_owner->transform.Rotation);
     model = glm::scale(model, _owner->transform.Scale);
-    shader.setMat4("model", model);
-    
+    _shader.setMat4("model", model);
+
     for (unsigned int i = 0; i < meshes.size(); i++) {
         meshes[i].Draw();
     }
+}
+
+void Renderer::loadModel() {
+    meshes.push_back(Mesh());
 }
 void Renderer::loadModel(string const& path) {
     // read file via ASSIMP
@@ -200,7 +125,8 @@ Mesh Renderer::processMesh(aiMesh* mesh, const aiScene* scene) {
         if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
         {
             glm::vec2 vec;
-            //texture Coordinates
+            // a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
+            // use models where a vertex can have multiple texture coordinates so we always take the first set (0).
             vec.x = mesh->mTextureCoords[0][i].x;
             vec.y = mesh->mTextureCoords[0][i].y;
             vertex.TexCoords = vec;
@@ -211,10 +137,10 @@ Mesh Renderer::processMesh(aiMesh* mesh, const aiScene* scene) {
             vertex.Tangent = vector;
             // bitangent
             vector.x = mesh->mBitangents[i].x;
-			vector.y = mesh->mBitangents[i].y;
-			vector.z = mesh->mBitangents[i].z;
-			vertex.Bitangent = vector;
-		}
+            vector.y = mesh->mBitangents[i].y;
+            vector.z = mesh->mBitangents[i].z;
+            vertex.Bitangent = vector;
+        }
         else
             vertex.TexCoords = glm::vec2(0.0f, 0.0f);
 

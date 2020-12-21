@@ -25,16 +25,6 @@ bool InputManager::_q = false;
 bool InputManager::_qPressed = false;
 bool InputManager::_e = false;
 bool InputManager::_ePressed = false;
-bool InputManager::_n = false;
-bool InputManager::_nPressed = false;
-bool InputManager::_m = false;
-bool InputManager::_mPressed = false;
-bool InputManager::_t = false;
-bool InputManager::_tPressed = false;
-bool InputManager::_z = false;
-bool InputManager::_zPressed = false;
-bool InputManager::_u = false;
-bool InputManager::_uPressed = false;
 float InputManager::_prevTime = 0;
 float InputManager::_deltaTime = 0;
 bool InputManager::_currentlyScrolling = false;
@@ -61,11 +51,6 @@ void InputManager::ProcessKeys(GLFWwindow* window)
     _dPressed = _d;
     _qPressed = _q;
     _ePressed = _e;
-    _nPressed = _n;
-    _mPressed = _m;
-    _tPressed = _t;
-    _zPressed = _z;
-    _uPressed = _u;
     
     _escape = (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS);
     _tab = (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS);
@@ -75,12 +60,7 @@ void InputManager::ProcessKeys(GLFWwindow* window)
     _s = (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS);
     _d = (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS);
     _q = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS);
-    _e = (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS); 
-    _n = (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS);
-    _m = (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS);
-    _t = (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS);
-    _z = (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS);
-    _u = (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS);
+    _e = (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS);
 }
 
 void InputManager::ProcessMouse(GLFWwindow* window)
@@ -211,56 +191,6 @@ const bool InputManager::E()
 const bool InputManager::EIsDown()
 {
     return _e;
-}
-
-const bool InputManager::N()
-{
-    return _n && !_nPressed;
-}
-
-const bool InputManager::NIsDown()
-{
-    return _n;
-}
-
-const bool InputManager::M()
-{
-    return _m && !_mPressed;
-}
-
-const bool InputManager::MIsDown()
-{
-    return _m;
-}
-
-const bool InputManager::T()
-{
-    return _t && !_tPressed;
-}
-
-const bool InputManager::TIsDown()
-{
-    return _t;
-}
-
-const bool InputManager::Z()
-{
-    return _z && !_zPressed;
-}
-
-const bool InputManager::ZIsDown()
-{
-    return _z;
-}
-
-const bool InputManager::U()
-{
-    return _u && !_uPressed;
-}
-
-const bool InputManager::UIsDown()
-{
-    return _u;
 }
 
 const float InputManager::DeltaTime()

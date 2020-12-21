@@ -86,7 +86,7 @@
     }
     // activate the shader
     // ------------------------------------------------------------------------
-    const void Shader::use()
+    void Shader::use()
     {
         glUseProgram(ID);
     }

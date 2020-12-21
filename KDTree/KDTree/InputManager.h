@@ -29,16 +29,6 @@ private:
     static bool _qPressed;
     static bool _e;
     static bool _ePressed;
-    static bool _n;
-    static bool _nPressed;
-    static bool _m;
-    static bool _mPressed;
-    static bool _t;
-    static bool _tPressed;
-    static bool _z;
-    static bool _zPressed;
-    static bool _u;
-    static bool _uPressed;
 	static float _prevTime;
 	static float _deltaTime;
 
@@ -73,16 +63,6 @@ public:
 	const static bool QIsDown();
 	const static bool E();
 	const static bool EIsDown();
-    const static bool N();
-    const static bool NIsDown();
-    const static bool M();
-    const static bool MIsDown();
-    const static bool T();
-    const static bool TIsDown();
-    const static bool Z();
-    const static bool ZIsDown();
-    const static bool U();
-    const static bool UIsDown();
 	const static float DeltaTime();
 	const static float CurrentTime();
 	const static float DeltaMouseX();
