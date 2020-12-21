@@ -63,6 +63,17 @@ void Renderer::Update()
     }
 }
 
+std::vector<glm::vec3> Renderer::GetAllVertices()
+{
+	std::vector<glm::vec3> vertices = std::vector<glm::vec3>();
+	for (auto const& m : meshes) {
+		for (auto const& v : m.vertices) {
+			vertices.push_back(v.Position);
+		}
+	}
+    return vertices;
+}
+
 void Renderer::loadModel() {
     meshes.push_back(Mesh());
 }

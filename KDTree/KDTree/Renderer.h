@@ -29,6 +29,7 @@ public:
 
     void SetModel(string const& path);
     virtual void Update() override;
+    std::vector<glm::vec3> GetAllVertices();
 
 private:
     
