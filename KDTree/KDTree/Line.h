@@ -5,6 +5,7 @@ class Line : public Component
 {
 public:
     Line();
+    ~Line();
     void SetPoints(glm::vec3 a, glm::vec3 b);
     const void Draw();
     // Inherited via Component

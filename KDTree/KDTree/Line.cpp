@@ -9,6 +9,11 @@ Line::Line() :
 _shader("line.vert", "line.frag") {
     SystemManager::LineSystem.AddComponent(this);
 }
+Line::~Line()
+{
+    SystemManager::LineSystem.RemoveComponent(this);
+}
+
 void Line::SetPoints(glm::vec3 a, glm::vec3 b) {
     _vertices[0] = a.x;
     _vertices[1] = a.y;
