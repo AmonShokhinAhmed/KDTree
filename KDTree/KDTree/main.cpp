@@ -152,7 +152,7 @@ int main()
 		sphere->transform.Position =v;
 		entities.push_back(sphere);
 	}*/
-	KDTree kd = KDTree(vertices);
+	KDTree kd = KDTree(vertices,5);
 
 
 	while (!glfwWindowShouldClose(window))

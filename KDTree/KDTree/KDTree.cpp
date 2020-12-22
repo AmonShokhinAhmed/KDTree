@@ -1,11 +1,14 @@
 #include "KDTree.h"
 
-KDTree::KDTree(std::vector<glm::vec3> vertices, bool visual)
+KDTree::KDTree(std::vector<glm::vec3> vertices, unsigned int depth, bool visual)
 {
     if (vertices.size() <= 0) {
         return;
     }
-    insertVertices(vertices, 0, vertices.size());
+    insertVerticesAsNode(vertices, 0, vertices.size(),0,depth);
+    for (auto v : vertices) {
+        insertPoint(root, v);
+    }
 	if (visual) {
 		generateLines();
 	}
@@ -36,19 +39,26 @@ glm::vec3 KDTree::findMinFromNode(Node* node, unsigned int j)
 
     if (node->j == j) {
         if (node->left == nullptr) {
-            return node->vertex;
+            return findMinChildPoint(node,j);
         }
         else {
-            glm::vec3 a = node->vertex;
+            glm::vec3 a = findMinChildPoint(node, j);
             glm::vec3 b = findMinFromNode(node->left, j);
             return Vec3Comparator(j)(a, b) ? a : b;
         }
     }
 
-    glm::vec3 a = node->vertex;
+    glm::vec3 a = findMinChildPoint(node, j);
     glm::vec3 b = findMinFromNode(node->left, j);
     glm::vec3 c = findMinFromNode(node->right, j);
     return Vec3Comparator(j)(a, b) ? (Vec3Comparator(j)(a, c) ? a : c) : (Vec3Comparator(j)(b, c) ? b : c);
+}
+glm::vec3 KDTree::findMinChildPoint(Node* node, unsigned int j) {
+    if (node->childPoints == nullptr) {
+        return glm::vec3(INT_MAX);
+    }
+    auto index = std::min_element(node->childPoints->begin(), node->childPoints->end(), Vec3Comparator(j));
+    return node->childPoints->at(std::distance(node->childPoints->begin(), index));
 }
 glm::vec3 KDTree::findMaxFromNode(Node* node, unsigned int j)
 {
@@ -58,28 +68,34 @@ glm::vec3 KDTree::findMaxFromNode(Node* node, unsigned int j)
 
     if (node->j == j) {
         if (node->right == nullptr) {
-            return node->vertex;
+            return findMaxChildPoint(node, j);
         }
         else {
-            glm::vec3 a = node->vertex;
+            glm::vec3 a = findMaxChildPoint(node, j);
             glm::vec3 b = findMaxFromNode(node->right, j);
             return Vec3Comparator(j)(a, b) ? b : a;
         }
     }
 
-    glm::vec3 a = node->vertex;
+    glm::vec3 a = findMaxChildPoint(node, j);
     glm::vec3 b = findMaxFromNode(node->left, j);
     glm::vec3 c = findMaxFromNode(node->right, j);
     return  Vec3Comparator(j)(a, b) ? (Vec3Comparator(j)(b, c) ? c : b) : (Vec3Comparator(j)(a, c) ? c : a);
 }
+glm::vec3 KDTree::findMaxChildPoint(Node* node, unsigned int j) {
+    if (node->childPoints == nullptr) {
+        return glm::vec3(INT_MIN);
+    }
+    auto index = std::max_element(node->childPoints->begin(), node->childPoints->end(), Vec3Comparator(j));
+    return node->childPoints->at(std::distance(node->childPoints->begin(), index));
+}
 
 #pragma region Tree Building
-void KDTree::insertVertices(std::vector<glm::vec3> &vertices, unsigned int start, unsigned int end) {
-    if (start >= end) {
+void KDTree::insertVerticesAsNode(std::vector<glm::vec3> &vertices, unsigned int start, unsigned int end, unsigned depth, unsigned int maxDepth) {
+    if (start >= end ||depth>=maxDepth) {
         return;
     }
 
-    //std::cout << std::endl << "--------------------------------------------------------------------------------------" << std::endl << std::endl;
     glm::vec3 currentMin;
 	glm::vec3 currentMax;
 
@@ -91,28 +107,16 @@ void KDTree::insertVertices(std::vector<glm::vec3> &vertices, unsigned int start
 	currentMax.y = std::max_element(vertices.begin() + start, vertices.begin() + end, Vec3Comparator(1))->y;
 	currentMax.z = std::max_element(vertices.begin() + start, vertices.begin() + end, Vec3Comparator(2))->z;
 
-    //for (int i = start; i < end; i++) {
-    //    std::cout << vec3ToString(vertices.at(i)) << std::endl;
-    //}
-    //std::cout << std::endl;
 	glm::vec3 span = currentMax - currentMin;
-	//std::cout << "Span: " << vec3ToString(span);
-	int j = span.x >= span.y ? (span.x >= span.z ? 0 : 2) : (span.y >= span.z ? 1 : 2);
-	//std::cout << " therefore j is " << j << std::endl;
+	
+    int j = span.x >= span.y ? (span.x >= span.z ? 0 : 2) : (span.y >= span.z ? 1 : 2);
 	int i = start + ((end - start) / 2);
 	std::nth_element(vertices.begin() + start, vertices.begin() + i, vertices.begin() + end, Vec3Comparator(j));
 
-
-	//std::cout << std::endl << "after nth element: " << std::endl;
-	//for (int i = start; i < end; i++) {
-	//	std::cout << vec3ToString(vertices.at(i)) << std::endl;
-	//}
-	//std::cout << "Median is " << vec3ToString(vertices.at(i)) << std::endl;
-
-    //std:cout << "Inserting vertex: " << vec3ToString(vertices.at(i));
-	insertNode(root, vertices.at(i), j);
-	insertVertices(vertices, start, i);
-	insertVertices(vertices, i + 1, end);
+    glm::vec3 point = glm::vec3(vertices.at(i));
+	insertNode(root, point, j);
+	insertVerticesAsNode(vertices, start, i,depth+1,maxDepth);
+	insertVerticesAsNode(vertices, i + 1, end, depth + 1, maxDepth);
 	return;
 }
 void KDTree::insertNode(Node*& node, glm::vec3 vertex, unsigned int j)
@@ -123,6 +127,7 @@ void KDTree::insertNode(Node*& node, glm::vec3 vertex, unsigned int j)
         node->j = j;
         node->left = nullptr;
         node->right = nullptr;
+        node->childPoints = nullptr;
         //std::cout << " -> " << node << "." << std::endl;
         return;
     }
@@ -135,6 +140,44 @@ void KDTree::insertNode(Node*& node, glm::vec3 vertex, unsigned int j)
     else {
         //std::cout << " -> right ";
         insertNode(node->right, vertex, j);
+    }
+    return;
+}
+void KDTree::insertPoint(Node* node, glm::vec3& point)
+{
+	if (node->left == nullptr && node->right == nullptr) {
+        if (node->childPoints == nullptr) {
+            node->childPoints = new std::vector<glm::vec3>();
+        }
+        node->childPoints->push_back(point);
+        return;
+    }
+
+	//left is smaller
+	if (Vec3Comparator(node->j)(point, node->vertex)) {
+		//std::cout << " -> left ";
+		if (node->left != nullptr) {
+			insertPoint(node->left, point);
+        }
+        else {
+            if (node->childPoints == nullptr) {
+                node->childPoints = new std::vector<glm::vec3>();
+            }
+            node->childPoints->push_back(point);
+            return;
+        }
+	}
+	else {
+        if (node->right != nullptr) {
+            insertPoint(node->right, point);
+        }
+        else {
+            if (node->childPoints == nullptr) {
+                node->childPoints == new std::vector<glm::vec3>();
+            }
+            node->childPoints->push_back(point);
+            return;
+        }
     }
     return;
 }
@@ -158,7 +201,8 @@ void KDTree::generateLines()
         FindMax(1).y,
         FindMax(2).z
     );
-    drawGridPlanesForNode(root,min,max ,0, 3);
+    //drawGridPlanesForNode(root,min,max);
+    drawBoundingBoxForNode(root);
 }
 void KDTree::drawLinesForAABB(glm::vec3 min, glm::vec3 max, glm::vec4 color)
 {
@@ -247,10 +291,10 @@ dh->GetComponent<Line>()->SetPoints(d, h);
 dh->GetComponent<Line>()->Color = color;
 _lines.push_back(dh);
 }
-void KDTree::drawGridPlanesForNode(Node* node, glm::vec3 min, glm::vec3 max, unsigned int depth, unsigned int maxDepth)
+void KDTree::drawGridPlanesForNode(Node* node, glm::vec3 min, glm::vec3 max)
 {
     //std::cout << "Depth " << depth<<std::endl;
-    if (node == nullptr || depth >= maxDepth) {
+    if (node == nullptr) {
         return;
     }
     //std::cout << "Drawing Splitting Lines for Vertex " << vec3ToString(node->vertex) << " on "<< (node->j == 0 ? "X" : node->j == 1 ? "Y" : "Z")<<"-Axis"<<" at Depth "<<depth<<std::endl;
@@ -276,27 +320,30 @@ void KDTree::drawGridPlanesForNode(Node* node, glm::vec3 min, glm::vec3 max, uns
     }
 
     drawLinesForAABB(leftMin, leftMax, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    drawGridPlanesForNode(node->left, leftMin, leftMax, depth + 1, maxDepth);
+    drawGridPlanesForNode(node->left, leftMin, leftMax );
 
     drawLinesForAABB(rightMin, rightMax, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    drawGridPlanesForNode(node->right, rightMin, rightMax, depth + 1, maxDepth);
+    drawGridPlanesForNode(node->right, rightMin, rightMax);
 
     return;
 }
-void KDTree::drawBoundingBoxForNode(Node* node, unsigned int depth, unsigned int maxDepth)
+void KDTree::drawBoundingBoxForNode(Node* node)
 {
     //std::cout << "Depth " << depth<<std::endl;
-    if (node == nullptr || depth >= maxDepth) {
-        return;
-    }
-    //std::cout << "Drawing Splitting Lines for Vertex " << vec3ToString(node->vertex) << " on "<< (node->j == 0 ? "X" : node->j == 1 ? "Y" : "Z")<<"-Axis"<<" at Depth "<<depth<<std::endl;
-    glm::vec3 curMin = glm::vec3(findMinFromNode(node, 0).x, findMinFromNode(node, 1).y, findMinFromNode(node, 2).z);
-    glm::vec3 curMax = glm::vec3(findMaxFromNode(node, 0).x, findMaxFromNode(node, 1).y, findMaxFromNode(node, 2).z);;
+    if (node == nullptr ) {
+		return;
+	}
 
-    drawLinesForAABB(curMin, curMax, glm::vec4(1.0f, 0.5f, 0.2f, 1.0f));
-    drawBoundingBoxForNode(node->left, depth + 1, maxDepth);
+	if (node->childPoints != nullptr) {
+		//std::cout << "Drawing Splitting Lines for Vertex " << vec3ToString(node->vertex) << " on "<< (node->j == 0 ? "X" : node->j == 1 ? "Y" : "Z")<<"-Axis"<<" at Depth "<<depth<<std::endl;
+		glm::vec3 curMin = glm::vec3(findMinFromNode(node, 0).x, findMinFromNode(node, 1).y, findMinFromNode(node, 2).z);
+		glm::vec3 curMax = glm::vec3(findMaxFromNode(node, 0).x, findMaxFromNode(node, 1).y, findMaxFromNode(node, 2).z);;
 
-    drawBoundingBoxForNode(node->right, depth + 1, maxDepth);
+		drawLinesForAABB(curMin, curMax, glm::vec4(1.0f, 0.5f, 0.2f, 1.0f));
+	}
+	drawBoundingBoxForNode(node->left);
+
+	drawBoundingBoxForNode(node->right);
 
     return;
 }

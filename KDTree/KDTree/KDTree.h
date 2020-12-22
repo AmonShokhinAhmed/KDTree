@@ -9,6 +9,7 @@ struct Node {
 	unsigned int j;
 	Node* left;
 	Node* right;
+	std::vector<glm::vec3>* childPoints;
 }; 
 struct Vec3Comparator {
 	Vec3Comparator(unsigned int j) :J(j) { }
@@ -38,7 +39,7 @@ static string vec3ToString(glm::vec3 v)
 class KDTree
 {
 public:
-	KDTree(std::vector<glm::vec3> vertices, bool visual = true);
+	KDTree(std::vector<glm::vec3> vertices, unsigned int depth, bool visual = true);
 	glm::vec3 FindMin(unsigned int j);
 	glm::vec3 FindMax(unsigned int j);
 	~KDTree();
@@ -47,15 +48,18 @@ private:
 	std::vector<Entity*> _lines;
 
 	glm::vec3 findMinFromNode(Node* node, unsigned int j);
+	glm::vec3 findMinChildPoint(Node* node, unsigned int j);
 	glm::vec3 findMaxFromNode(Node* node, unsigned int j);
+	glm::vec3 findMaxChildPoint(Node* node, unsigned int j);
+	void insertPoint(Node* node, glm::vec3& point);
 
-	void insertVertices(std::vector<glm::vec3>& vertices, unsigned int start, unsigned int end);
+	void insertVerticesAsNode(std::vector<glm::vec3>& vertices, unsigned int start, unsigned int end, unsigned depth, unsigned int maxDepth);
 	void insertNode(Node*& root, glm::vec3 vertex, unsigned int j);
 
 	void generateLines();
 	void drawLinesForAABB(glm::vec3 min, glm::vec3 max, glm::vec4 color);
-	void drawGridPlanesForNode(Node* node, glm::vec3 min, glm::vec3 max, unsigned int depth, unsigned int maxDepth);
-	void drawBoundingBoxForNode(Node* node, unsigned int depth, unsigned int maxDepth);
+	void drawGridPlanesForNode(Node* node, glm::vec3 min, glm::vec3 max);
+	void drawBoundingBoxForNode(Node* node);
 	
 };
 
