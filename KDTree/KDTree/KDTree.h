@@ -4,7 +4,7 @@
 #include <sstream>
 #include <iomanip>
 
-struct Triangle {
+struct SimpleTriangle {
 	glm::vec3 a;
 	glm::vec3 b;
 	glm::vec3 c;
@@ -14,7 +14,7 @@ struct Node {
 	unsigned int j;
 	Node* left;
 	Node* right;
-	std::vector<Triangle>* childTriangles;
+	std::vector<SimpleTriangle>* childTriangles;
 }; 
 
 struct Vec3Comparator {
@@ -37,7 +37,7 @@ struct Vec3Comparator {
 };
 struct TriangleComparator {
 	TriangleComparator(unsigned int j) :J(j) { }
-	bool operator () (Triangle triA, Triangle triB) {
+	bool operator () (SimpleTriangle triA, SimpleTriangle triB) {
 		float aValue;
 		float bValue;
 		switch (J) {
@@ -72,21 +72,29 @@ class KDTree
 {
 public:
 	KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indices, unsigned int depth, bool visual = true);
-	glm::vec3 FindMin(unsigned int j);
-	glm::vec3 FindMax(unsigned int j);
+	glm::vec3 FindMinPoint(unsigned int j);
+	glm::vec3 FindMaxPoint(unsigned int j); 
+	SimpleTriangle FindMinTriangle(unsigned int j);
+	//SimpleTriangle FindMaxTriangle(unsigned int j);
 	~KDTree();
 private:
 	Node* root;
 	std::vector<Entity*> _lines;
 
-	glm::vec3 findMinFromNode(Node* node, unsigned int j);
+	SimpleTriangle findMinTriangleFromNode(Node* node, unsigned int j);
+	glm::vec3 findMinPointFromNode(Node* node, unsigned int j);
+	SimpleTriangle findMinChildTriangle(Node* node, unsigned int j);
 	glm::vec3 findMinChildPoint(Node* node, unsigned int j);
-	glm::vec3 findMaxFromNode(Node* node, unsigned int j);
+
+	//SimpleTriangle findMaxTriangleFromNode(Node* node, unsigned int j);
+	glm::vec3 findMaxPointFromNode(Node* node, unsigned int j);
+	//SimpleTriangle findMaxChildTriangle(Node* node, unsigned int j);
 	glm::vec3 findMaxChildPoint(Node* node, unsigned int j);
+
 	//void insertPoint(Node* node, glm::vec3& point);
 	void insertVerticesAsNode(std::vector<glm::vec3> vertices, unsigned int start, unsigned int end, unsigned depth, unsigned int maxDepth);
 	void insertNode(Node*& root, glm::vec3 vertex, unsigned int j);
-	void insertTriangle(Node* node, Triangle& triangle);
+	void insertTriangle(Node* node, SimpleTriangle& triangle);
 
 	void generateLines();
 	void drawLinesForAABB(glm::vec3 min, glm::vec3 max, glm::vec4 color);

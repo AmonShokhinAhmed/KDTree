@@ -11,6 +11,7 @@
 #include "Entity.h"
 
 #include <iostream>
+#include "Triangle.h"
 #include "Line.h"
 #include "Camera.h"
 #include "Renderer.h"
@@ -87,10 +88,10 @@ int main()
 
 
 	//Generate Random Boxes
-	/*
+	
 	float lowerBound = -1;
 	float upperBound = 1;
-	for (int i = 0; i < 25; i++) {
+	for (int i = 0; i < 15; i++) {
 		Entity* cube = new Entity();
 		cube->AddComponent<Renderer>();
 		cube->GetComponent<Renderer>()->SetModel("resources/models/cube.obj");
@@ -101,7 +102,7 @@ int main()
 		cube->transform.Scale = glm::vec3(0.1f, 0.1f, 0.1f);
 		cube->transform.Position = glm::vec3(x, y, z);
 		entities.push_back(cube);
-	}*/
+	}
 
 
 	/*
@@ -109,12 +110,12 @@ int main()
 	house->AddComponent<Renderer>();
 	house->GetComponent<Renderer>()->SetModel("resources/models/house.obj");
 	entities.push_back(house);
-	*/
+	
 	Entity* environment = new Entity();
 	environment->AddComponent<Renderer>();
 	environment->GetComponent<Renderer>()->SetModel("resources/models/environment.obj");
 	entities.push_back(environment);
-	/*
+	
 	Entity* decor = new Entity();
 	decor->AddComponent<Renderer>();
 	decor->GetComponent<Renderer>()->SetModel("resources/models/decor.obj");
@@ -153,7 +154,15 @@ int main()
 	}*/
 	auto vertices = SystemManager::RendererSystem.GetAllVertices();
 	auto indices = SystemManager::RendererSystem.GetAllIndices();
+
 	KDTree kd = KDTree(vertices, indices, 5);
+	
+	auto minTriY = kd.FindMinTriangle(2);
+	std::cout << "Triangle found: " << vec3ToString(minTriY.a)<<" , " << vec3ToString(minTriY.b)<<" , " << vec3ToString(minTriY.c)<<" , " << std::endl;
+	Entity* tMinY = new Entity();
+	tMinY->AddComponent<Triangle>();
+	tMinY->GetComponent<Triangle>()->SetPoints(minTriY.a, minTriY.b, minTriY.c);
+	entities.push_back(tMinY);
 
 
 	while (!glfwWindowShouldClose(window))
@@ -163,7 +172,6 @@ int main()
 
 		InputManager::Update(glfwGetTime(), window);
 		SystemManager::Update();
-
 		glfwSetWindowShouldClose(window, InputManager::Escape());
 		glfwSwapBuffers(window);
 		glfwPollEvents();

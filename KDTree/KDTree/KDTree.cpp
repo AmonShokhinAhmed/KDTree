@@ -7,7 +7,7 @@ KDTree::KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indice
 	}
 	insertVerticesAsNode(vertices, 0, vertices.size(), 0, depth);
 	for (int i = 0; i < indices.size(); i += 3) {
-		Triangle triangle;
+		SimpleTriangle triangle;
 		triangle.a = vertices[indices[i]];
 		triangle.b = vertices[indices[i + 1]];
 		triangle.c = vertices[indices[i + 2]];
@@ -18,13 +18,17 @@ KDTree::KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indice
 	}
 }
 
-glm::vec3 KDTree::FindMin(unsigned int j)
+SimpleTriangle KDTree::FindMinTriangle(unsigned int j)
 {
-	return findMinFromNode(root, j);
+	return findMinTriangleFromNode(root, j);
 }
-glm::vec3 KDTree::FindMax(unsigned int j)
+glm::vec3 KDTree::FindMinPoint(unsigned int j)
 {
-	return findMaxFromNode(root, j);
+	return findMinPointFromNode(root, j);
+}
+glm::vec3 KDTree::FindMaxPoint(unsigned int j)
+{
+	return findMaxPointFromNode(root, j);
 }
 
 KDTree::~KDTree()
@@ -35,7 +39,32 @@ KDTree::~KDTree()
 	_lines.clear();
 }
 
-glm::vec3 KDTree::findMinFromNode(Node* node, unsigned int j)
+SimpleTriangle KDTree::findMinTriangleFromNode(Node* node, unsigned int j) {
+	if (node == NULL) {
+		SimpleTriangle t;
+		t.a = glm::vec3(INT_MAX);
+		t.b = glm::vec3(INT_MAX);
+		t.c = glm::vec3(INT_MAX);
+		return t;
+	}
+
+	if (node->j == j) {
+		if (node->left == nullptr) {
+			return findMinChildTriangle(node, j);
+		}
+		else {
+			SimpleTriangle a = findMinChildTriangle(node, j);
+			SimpleTriangle b = findMinTriangleFromNode(node->left, j);
+			return TriangleComparator(j)(a, b) ? a : b;
+		}
+	}
+
+	SimpleTriangle a = findMinChildTriangle(node, j);
+	SimpleTriangle b = findMinTriangleFromNode(node->left, j);
+	SimpleTriangle c = findMinTriangleFromNode(node->right, j);
+	return TriangleComparator(j)(a, b) ? (TriangleComparator(j)(a, c) ? a : c) : (TriangleComparator(j)(b, c) ? b : c);
+}
+glm::vec3 KDTree::findMinPointFromNode(Node* node, unsigned int j)
 {
 	if (node == NULL) {
 		return glm::vec3(INT_MAX);
@@ -47,26 +76,34 @@ glm::vec3 KDTree::findMinFromNode(Node* node, unsigned int j)
 		}
 		else {
 			glm::vec3 a = findMinChildPoint(node, j);
-			glm::vec3 b = findMinFromNode(node->left, j);
+			glm::vec3 b = findMinPointFromNode(node->left, j);
 			return Vec3Comparator(j)(a, b) ? a : b;
 		}
 	}
 
 	glm::vec3 a = findMinChildPoint(node, j);
-	glm::vec3 b = findMinFromNode(node->left, j);
-	glm::vec3 c = findMinFromNode(node->right, j);
+	glm::vec3 b = findMinPointFromNode(node->left, j);
+	glm::vec3 c = findMinPointFromNode(node->right, j);
 	return Vec3Comparator(j)(a, b) ? (Vec3Comparator(j)(a, c) ? a : c) : (Vec3Comparator(j)(b, c) ? b : c);
 }
-glm::vec3 KDTree::findMinChildPoint(Node* node, unsigned int j) {
+SimpleTriangle KDTree::findMinChildTriangle(Node* node, unsigned int j) {
 	if (node->childTriangles == nullptr) {
-		return glm::vec3(INT_MAX);
+		SimpleTriangle t;
+		t.a= glm::vec3(INT_MAX);
+		t.b= glm::vec3(INT_MAX);
+		t.c= glm::vec3(INT_MAX);
+		return t;
 	}
 	auto index = std::min_element(node->childTriangles->begin(), node->childTriangles->end(), TriangleComparator(j));
-	auto tri = node->childTriangles->at(std::distance(node->childTriangles->begin(), index));
+	return node->childTriangles->at(std::distance(node->childTriangles->begin(), index));
+}
+glm::vec3 KDTree::findMinChildPoint(Node* node, unsigned int j) {
+	auto tri = findMinChildTriangle(node, j);
 	glm::vec3 min = Vec3Comparator(j)(tri.a, tri.b) ? (Vec3Comparator(j)(tri.a, tri.c) ? tri.a : tri.c) : (Vec3Comparator(j)(tri.b, tri.c) ? tri.b : tri.c);
 	return min;
 }
-glm::vec3 KDTree::findMaxFromNode(Node* node, unsigned int j)
+
+glm::vec3 KDTree::findMaxPointFromNode(Node* node, unsigned int j)
 {
 	if (node == NULL) {
 		return glm::vec3(INT_MIN);
@@ -78,14 +115,14 @@ glm::vec3 KDTree::findMaxFromNode(Node* node, unsigned int j)
 		}
 		else {
 			glm::vec3 a = findMaxChildPoint(node, j);
-			glm::vec3 b = findMaxFromNode(node->right, j);
+			glm::vec3 b = findMaxPointFromNode(node->right, j);
 			return Vec3Comparator(j)(a, b) ? b : a;
 		}
 	}
 
 	glm::vec3 a = findMaxChildPoint(node, j);
-	glm::vec3 b = findMaxFromNode(node->left, j);
-	glm::vec3 c = findMaxFromNode(node->right, j);
+	glm::vec3 b = findMaxPointFromNode(node->left, j);
+	glm::vec3 c = findMaxPointFromNode(node->right, j);
 	return  Vec3Comparator(j)(a, b) ? (Vec3Comparator(j)(b, c) ? c : b) : (Vec3Comparator(j)(a, c) ? c : a);
 }
 glm::vec3 KDTree::findMaxChildPoint(Node* node, unsigned int j) {
@@ -192,7 +229,7 @@ void KDTree::insertPoint(Node* node, glm::vec3& point)
 		}
 		else {
 			if (node->childPoints == nullptr) {
-				node->childPoints == new std::vector<glm::vec3>();
+				node->childPoints = new std::vector<glm::vec3>();
 			}
 			node->childPoints->push_back(point);
 			return;
@@ -200,10 +237,10 @@ void KDTree::insertPoint(Node* node, glm::vec3& point)
 	}
 	return;
 }*/
-void KDTree::insertTriangle(Node* node, Triangle& triangle) {
+void KDTree::insertTriangle(Node* node, SimpleTriangle& triangle) {
 	if (node->left == nullptr && node->right == nullptr) {
 		if (node->childTriangles == nullptr) {
-			node->childTriangles = new std::vector<Triangle>();
+			node->childTriangles = new std::vector<SimpleTriangle>();
 		}
 		node->childTriangles->push_back(triangle);
 		return;
@@ -223,7 +260,7 @@ void KDTree::insertTriangle(Node* node, Triangle& triangle) {
 		}
 		else {
 			if (node->childTriangles == nullptr) {
-				node->childTriangles = new std::vector<Triangle>();
+				node->childTriangles = new std::vector<SimpleTriangle>();
 			}
 			node->childTriangles->push_back(triangle);
 			return;
@@ -235,7 +272,7 @@ void KDTree::insertTriangle(Node* node, Triangle& triangle) {
 		}
 		else {
 			if (node->childTriangles == nullptr) {
-				node->childTriangles == new std::vector<Triangle>();
+				node->childTriangles = new std::vector<SimpleTriangle>();
 			}
 			node->childTriangles->push_back(triangle);
 			return;
@@ -250,7 +287,7 @@ void KDTree::insertTriangle(Node* node, Triangle& triangle) {
 		}
 		if (node->right == nullptr || node->left == nullptr) {
 			if (node->childTriangles == nullptr) {
-				node->childTriangles == new std::vector<Triangle>();
+				node->childTriangles = new std::vector<SimpleTriangle>();
 			}
 			node->childTriangles->push_back(triangle);
 			return;
@@ -265,15 +302,15 @@ void KDTree::generateLines()
 {
 	glm::vec3 min = glm::vec3
 	(
-		FindMin(0).x,
-		FindMin(1).y,
-		FindMin(2).z
+		FindMinPoint(0).x,
+		FindMinPoint(1).y,
+		FindMinPoint(2).z
 	);
 	glm::vec3 max = glm::vec3
 	(
-		FindMax(0).x,
-		FindMax(1).y,
-		FindMax(2).z
+		FindMaxPoint(0).x,
+		FindMaxPoint(1).y,
+		FindMaxPoint(2).z
 	);
 	drawGridPlanesForNode(root, min, max);
 	//drawBoundingBoxForNode(root);
@@ -410,8 +447,8 @@ void KDTree::drawBoundingBoxForNode(Node* node)
 
 	if (node->childTriangles != nullptr) {
 		//std::cout << "Drawing Splitting Lines for Vertex " << vec3ToString(node->vertex) << " on "<< (node->j == 0 ? "X" : node->j == 1 ? "Y" : "Z")<<"-Axis"<<" at Depth "<<depth<<std::endl;
-		glm::vec3 curMin = glm::vec3(findMinFromNode(node, 0).x, findMinFromNode(node, 1).y, findMinFromNode(node, 2).z);
-		glm::vec3 curMax = glm::vec3(findMaxFromNode(node, 0).x, findMaxFromNode(node, 1).y, findMaxFromNode(node, 2).z);;
+		glm::vec3 curMin = glm::vec3(findMinPointFromNode(node, 0).x, findMinPointFromNode(node, 1).y, findMinPointFromNode(node, 2).z);
+		glm::vec3 curMax = glm::vec3(findMaxPointFromNode(node, 0).x, findMaxPointFromNode(node, 1).y, findMaxPointFromNode(node, 2).z);;
 
 		drawLinesForAABB(curMin, curMax, glm::vec4(1.0f, 0.5f, 0.2f, 1.0f));
 	}
