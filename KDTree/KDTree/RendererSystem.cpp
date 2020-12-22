@@ -16,3 +16,17 @@ std::vector<glm::vec3> RendererSystem::GetAllVertices()
 	}
 	return vertices;
 }
+
+std::vector<unsigned int> RendererSystem::GetAllIndices()
+{
+	std::vector<unsigned int> indices = std::vector<unsigned int>();
+	unsigned int indicesOffset = 0;
+	for (Renderer* r : _components) {
+		std::vector<unsigned int> newIndices = r->GetAllIndices();
+		for (auto i : newIndices) {
+			indices.push_back(i+indicesOffset);
+		}
+		indicesOffset += r->GetAllVertices().size();
+	}
+	return indices;
+}

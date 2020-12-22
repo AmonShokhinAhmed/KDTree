@@ -110,17 +110,16 @@ int main()
 	house->GetComponent<Renderer>()->SetModel("resources/models/house.obj");
 	entities.push_back(house);
 	*/
-	  Entity* environment = new Entity();
-	  environment->AddComponent<Renderer>();
-	  environment->GetComponent<Renderer>()->SetModel("resources/models/environment.obj");
-	  entities.push_back(environment);
-	  /*
-	  Entity* decor = new Entity();
-	  decor->AddComponent<Renderer>();
-	  decor->GetComponent<Renderer>()->SetModel("resources/models/decor.obj");
-	  entities.push_back(decor);*/
+	Entity* environment = new Entity();
+	environment->AddComponent<Renderer>();
+	environment->GetComponent<Renderer>()->SetModel("resources/models/environment.obj");
+	entities.push_back(environment);
+	/*
+	Entity* decor = new Entity();
+	decor->AddComponent<Renderer>();
+	decor->GetComponent<Renderer>()->SetModel("resources/models/decor.obj");
+	entities.push_back(decor);*/
 
-	std::vector<glm::vec3> vertices = SystemManager::RendererSystem.GetAllVertices();
 	/*std::vector<glm::vec3> vertices{
 		glm::vec3(0,3,1),
 		glm::vec3(1,9,1),
@@ -152,7 +151,9 @@ int main()
 		sphere->transform.Position =v;
 		entities.push_back(sphere);
 	}*/
-	KDTree kd = KDTree(vertices,5);
+	auto vertices = SystemManager::RendererSystem.GetAllVertices();
+	auto indices = SystemManager::RendererSystem.GetAllIndices();
+	KDTree kd = KDTree(vertices, indices, 5);
 
 
 	while (!glfwWindowShouldClose(window))

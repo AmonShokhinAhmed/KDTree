@@ -78,6 +78,19 @@ std::vector<glm::vec3> Renderer::GetAllVertices()
     return vertices;
 }
 
+std::vector<unsigned int> Renderer::GetAllIndices()
+{
+    std::vector<unsigned int> indices = std::vector<unsigned int>();
+    unsigned int indicesOffset = 0;
+    for (auto const& m : meshes) {
+        for (auto const& i : m.indices) {
+            indices.push_back(i+ indicesOffset);
+        }
+        indicesOffset += m.vertices.size();
+    }
+    return indices;
+}
+
 void Renderer::loadModel() {
     meshes.push_back(Mesh());
 }

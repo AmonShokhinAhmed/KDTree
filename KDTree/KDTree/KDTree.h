@@ -4,13 +4,19 @@
 #include <sstream>
 #include <iomanip>
 
+struct Triangle {
+	glm::vec3 a;
+	glm::vec3 b;
+	glm::vec3 c;
+};
 struct Node {
 	glm::vec3 vertex;
 	unsigned int j;
 	Node* left;
 	Node* right;
-	std::vector<glm::vec3>* childPoints;
+	std::vector<Triangle>* childTriangles;
 }; 
+
 struct Vec3Comparator {
 	Vec3Comparator(unsigned int j) :J(j) { }
 	bool operator () (glm::vec3 a, glm::vec3 b) {
@@ -29,6 +35,32 @@ struct Vec3Comparator {
 
 	int J;
 };
+struct TriangleComparator {
+	TriangleComparator(unsigned int j) :J(j) { }
+	bool operator () (Triangle triA, Triangle triB) {
+		float aValue;
+		float bValue;
+		switch (J) {
+		case 0:
+			aValue = triA.a.x < triA.b.x ? (triA.a.x < triA.c.x ? triA.a.x : triA.c.x) : (triA.b.x < triA.c.x ? triA.b.x : triA.c.x);
+			bValue = triB.a.x < triB.b.x ? (triB.a.x < triB.c.x ? triB.a.x : triB.c.x) : (triB.b.x < triB.c.x ? triB.b.x : triB.c.x);
+			return (aValue < bValue);
+			break;
+		case 1:
+			aValue = triA.a.y < triA.b.y ? (triA.a.y < triA.c.y ? triA.a.y : triA.c.y) : (triA.b.y < triA.c.y ? triA.b.y : triA.c.y);
+			bValue = triB.a.y < triB.b.y ? (triB.a.y < triB.c.y ? triB.a.y : triB.c.y) : (triB.b.y < triB.c.y ? triB.b.y : triB.c.y);
+			return (aValue < bValue);
+			break;
+		default:
+			aValue = triA.a.z < triA.b.z ? (triA.a.z < triA.c.z ? triA.a.z : triA.c.z) : (triA.b.z < triA.c.z ? triA.b.z : triA.c.z);
+			bValue = triB.a.z < triB.b.z ? (triB.a.z < triB.c.z ? triB.a.z : triB.c.z) : (triB.b.z < triB.c.z ? triB.b.z : triB.c.z);
+			return (aValue < bValue);;
+			break;
+		}
+	}
+
+	int J;
+};
 static string vec3ToString(glm::vec3 v)
 {
 	std::stringstream stream;
@@ -39,7 +71,7 @@ static string vec3ToString(glm::vec3 v)
 class KDTree
 {
 public:
-	KDTree(std::vector<glm::vec3> vertices, unsigned int depth, bool visual = true);
+	KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indices, unsigned int depth, bool visual = true);
 	glm::vec3 FindMin(unsigned int j);
 	glm::vec3 FindMax(unsigned int j);
 	~KDTree();
@@ -51,10 +83,10 @@ private:
 	glm::vec3 findMinChildPoint(Node* node, unsigned int j);
 	glm::vec3 findMaxFromNode(Node* node, unsigned int j);
 	glm::vec3 findMaxChildPoint(Node* node, unsigned int j);
-	void insertPoint(Node* node, glm::vec3& point);
-
-	void insertVerticesAsNode(std::vector<glm::vec3>& vertices, unsigned int start, unsigned int end, unsigned depth, unsigned int maxDepth);
+	//void insertPoint(Node* node, glm::vec3& point);
+	void insertVerticesAsNode(std::vector<glm::vec3> vertices, unsigned int start, unsigned int end, unsigned depth, unsigned int maxDepth);
 	void insertNode(Node*& root, glm::vec3 vertex, unsigned int j);
+	void insertTriangle(Node* node, Triangle& triangle);
 
 	void generateLines();
 	void drawLinesForAABB(glm::vec3 min, glm::vec3 max, glm::vec4 color);
