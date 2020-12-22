@@ -110,10 +110,20 @@ void KDTree::insertVerticesAsNode(std::vector<glm::vec3> &vertices, unsigned int
 	glm::vec3 span = currentMax - currentMin;
 	
     int j = span.x >= span.y ? (span.x >= span.z ? 0 : 2) : (span.y >= span.z ? 1 : 2);
-	int i = start + ((end - start) / 2);
-	std::nth_element(vertices.begin() + start, vertices.begin() + i, vertices.begin() + end, Vec3Comparator(j));
+	
 
-    glm::vec3 point = glm::vec3(vertices.at(i));
+    glm::vec3 point;
+    int range = end - start;
+	int i = start + ((range) * 0.5f);
+	std::nth_element(vertices.begin() + start, vertices.begin() + i, vertices.begin() + end, Vec3Comparator(j));
+	point = glm::vec3(vertices.at(i));
+
+	if (range % 2 == 0) {
+		std::nth_element(vertices.begin() + start, vertices.begin() + i + 1, vertices.begin() + end, Vec3Comparator(j));
+		glm::vec3 pointB = glm::vec3(vertices.at(i + 1));
+
+        point[j] = (point[j]+pointB[j])*0.5f;
+    }
 	insertNode(root, point, j);
 	insertVerticesAsNode(vertices, start, i,depth+1,maxDepth);
 	insertVerticesAsNode(vertices, i + 1, end, depth + 1, maxDepth);
