@@ -54,7 +54,7 @@ void Line::Update()
     glm::mat4 view = SystemManager::CameraSystem.ActiveCamera()->GetViewMatrix();
     _shader.setMat4("projection", projection);
     _shader.setMat4("view", view);
-
+    _shader.setVec4("color", Color);
     // world transformation
     glm::mat4 model = glm::mat4(1.0);
     model = glm::translate(model, _owner->transform.Position);

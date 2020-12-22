@@ -65,10 +65,14 @@ void Renderer::Update()
 
 std::vector<glm::vec3> Renderer::GetAllVertices()
 {
+    glm::mat4 model = glm::mat4(1.0);
+    model = glm::translate(model, _owner->transform.Position);
+    model *= glm::toMat4(_owner->transform.Rotation);
+    model = glm::scale(model, _owner->transform.Scale);
 	std::vector<glm::vec3> vertices = std::vector<glm::vec3>();
 	for (auto const& m : meshes) {
 		for (auto const& v : m.vertices) {
-			vertices.push_back(v.Position);
+			vertices.push_back(glm::vec3(model * glm::vec4(v.Position, 1.0)));
 		}
 	}
     return vertices;
