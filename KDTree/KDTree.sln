@@ -9,6 +9,8 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		FakeRelease|x64 = FakeRelease|x64
+		FakeRelease|x86 = FakeRelease|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
@@ -17,6 +19,10 @@ Global
 		{359798D8-9987-403E-9A4E-81140F8A00A7}.Debug|x64.Build.0 = Debug|x64
 		{359798D8-9987-403E-9A4E-81140F8A00A7}.Debug|x86.ActiveCfg = Debug|Win32
 		{359798D8-9987-403E-9A4E-81140F8A00A7}.Debug|x86.Build.0 = Debug|Win32
+		{359798D8-9987-403E-9A4E-81140F8A00A7}.FakeRelease|x64.ActiveCfg = FakeRelease|x64
+		{359798D8-9987-403E-9A4E-81140F8A00A7}.FakeRelease|x64.Build.0 = FakeRelease|x64
+		{359798D8-9987-403E-9A4E-81140F8A00A7}.FakeRelease|x86.ActiveCfg = FakeRelease|Win32
+		{359798D8-9987-403E-9A4E-81140F8A00A7}.FakeRelease|x86.Build.0 = FakeRelease|Win32
 		{359798D8-9987-403E-9A4E-81140F8A00A7}.Release|x64.ActiveCfg = Release|x64
 		{359798D8-9987-403E-9A4E-81140F8A00A7}.Release|x64.Build.0 = Release|x64
 		{359798D8-9987-403E-9A4E-81140F8A00A7}.Release|x86.ActiveCfg = Release|Win32

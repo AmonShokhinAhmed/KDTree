@@ -6,7 +6,6 @@ KDTree::KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indice
 	depth = glm::log2(depth);
 	depth+=1;
 	depth = glm::ceil(depth);
-
 	if (vertices.size() <= 0) {
 		return;
 	}
@@ -361,7 +360,7 @@ void KDTree::insertTriangle(Node* node, SimpleTriangle*& triangle) {
 	bool b = node->vertex[node->j] > triangle->b[node->j];
 	bool c = node->vertex[node->j] > triangle->c[node->j];
 	bool completelySmaller = (a && b && c);
-	bool completelyBigger = (!a && !b && !c);
+	bool completelyBigger = (!a &&! b && !c);
 	//left is smaller
 	if (completelySmaller) {
 		if (node->left != nullptr) {
@@ -562,12 +561,8 @@ void KDTree::drawBoundingBoxForNode(Node* node)
 		drawLinesForAABB(curMin, curMax, glm::vec4(1.0f, 0.5f, 0.2f, 1.0f));
 	}
 	drawBoundingBoxForNode(node->left);
-
 	drawBoundingBoxForNode(node->right);
 
 	return;
 }
 #pragma endregion
-
-
-

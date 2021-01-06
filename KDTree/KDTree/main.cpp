@@ -88,9 +88,6 @@ int main()
 	entities.push_back(camera);
 
 
-
-
-
 	Entity* house = new Entity();
 	house->AddComponent<Renderer>();
 	house->GetComponent<Renderer>()->SetModel("resources/models/house.obj");
@@ -112,73 +109,15 @@ int main()
 	entities.push_back(floor);
 
 
-	//Generate Random Boxes
-	/*
-	float lowerBound = -1;
-	float upperBound = 1;
-	for (int i = 0; i < 15; i++) {
-		Entity* cube = new Entity();
-		cube->AddComponent<Renderer>();
-		cube->GetComponent<Renderer>()->SetModel("resources/models/cube.obj");
-		float x = lowerBound + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (upperBound - lowerBound)));
-		float y = lowerBound + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (upperBound - lowerBound)));
-		float z = lowerBound + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (upperBound - lowerBound)));
-
-		cube->transform.Scale = glm::vec3(0.1f, 0.1f, 0.1f);
-		cube->transform.Position = glm::vec3(x, y, z);
-		entities.push_back(cube);
-	}*/
-	//Test vertices
-	/*std::vector<glm::vec3> vertices{
-		glm::vec3(0,3,1),
-		glm::vec3(1,9,1),
-		glm::vec3(2,0,3),
-		glm::vec3(3,6,4),
-		glm::vec3(4,4,5),
-		glm::vec3(7,5,5),
-		glm::vec3(0,6,0),
-		glm::vec3(5,9,7),
-		glm::vec3(8,3,2),
-		glm::vec3(2,3,9),
-	};*/
-	//Random Spheres
-	/*float lowerBound = -1;
-	float upperBound = 1;
-	std::vector<glm::vec3> vertices;
-	for (int i = 0; i < 15; i++) {
-		float x = lowerBound + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (upperBound - lowerBound)));
-		float y = lowerBound + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (upperBound - lowerBound)));
-		float z = lowerBound + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (upperBound - lowerBound)));
-
-		vertices.push_back(glm::vec3(x, y, z));
-	}
-	for (auto v : vertices) {
-		Entity* sphere = new Entity();
-		sphere->AddComponent<Renderer>();
-		sphere->GetComponent<Renderer>()->SetModel("resources/models/sphere.obj");
-
-		sphere->transform.Scale = glm::vec3(0.05f, 0.05f, 0.05f);
-		sphere->transform.Position =v;
-		entities.push_back(sphere);
-	}*/
-
 	auto vertices = SystemManager::RendererSystem.GetAllVertices();
 	auto indices = SystemManager::RendererSystem.GetAllIndices();
-	int approxChildTris = 150;
+	int approxChildTris = 500;
 	KDTree kd = KDTree(vertices, indices, approxChildTris);
-
-
-
-	/*auto minTriY = kd.FindMinTriangle(2);
-	std::cout << "Triangle found: " << vec3ToString(minTriY.a)<<" , " << vec3ToString(minTriY.b)<<" , " << vec3ToString(minTriY.c)<<" , " << std::endl;
-	Entity* tMinY = new Entity();
-	tMinY->AddComponent<Triangle>();
-	tMinY->GetComponent<Triangle>()->SetPoints(minTriY.a, minTriY.b, minTriY.c);
-	entities.push_back(tMinY);
-	*/
 
 	Entity* rayCastLine = nullptr;
 	Entity* rayCastTriangle = nullptr;
+	Entity* rayCastSphere = nullptr;
+	Entity* rayCastCamera = nullptr;
 	while (!glfwWindowShouldClose(window))
 	{
 		glClearColor(0.3f, 0.35f, 0.35f, 1.0f);
@@ -202,11 +141,22 @@ int main()
 			glm::vec3 b = ray.A + ray.D * ray.TMax;
 			rayCastLine->GetComponent<Line>()->SetPoints(a, b);
 			rayCastLine->GetComponent<Line>()->Color = glm::vec4(0.0f, 1.0f, 0.2f, 1.0f);
+			
+			
+			if (rayCastSphere == nullptr) {
+				rayCastSphere = new Entity();
+				rayCastSphere->AddComponent<Renderer>();
+				rayCastSphere->GetComponent<Renderer>()->SetModel("resources/models/sphere.obj");
+				rayCastSphere->GetComponent<Renderer>()->DiffuseColor = glm::vec3(1, 0, 0);
+				rayCastSphere->transform.Scale = glm::vec3(0.05f, 0.05f, 0.05f);
+				entities.push_back(rayCastCamera);
+			}
+			
 
 			auto start = std::chrono::high_resolution_clock::now();
 			Hit* hit = kd.RayIntersect(ray);
 			auto end = std::chrono::high_resolution_clock::now();
-			std::cout << "Raycast took: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds." << std::endl;
+			std::cout << "Raycast took: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds";
 			if (hit != nullptr) {
 				if (rayCastTriangle == nullptr) {
 					rayCastTriangle = new Entity();
@@ -214,9 +164,12 @@ int main()
 					entities.push_back(rayCastTriangle);
 				}
 				rayCastTriangle->GetComponent<Triangle>()->SetPoints(hit->Triangle->a, hit->Triangle->b, hit->Triangle->c);
+				rayCastSphere->transform.Position = hit->point;
+				std::cout << " and hit at (" <<vec3ToString(hit->point)<<")."<< std::endl;
 			}
 			else {
-				std::cout << "nothing hit" << std::endl;
+				rayCastSphere->transform.Position = ray.A+ray.D*ray.TMax;
+				std::cout << " and hit nothing." << std::endl;
 			}
 		}
 
