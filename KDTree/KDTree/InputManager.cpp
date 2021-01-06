@@ -25,6 +25,8 @@ bool InputManager::_q = false;
 bool InputManager::_qPressed = false;
 bool InputManager::_e = false;
 bool InputManager::_ePressed = false;
+bool InputManager::_rmb = false;
+bool InputManager::_rmbPressed = false;
 float InputManager::_prevTime = 0;
 float InputManager::_deltaTime = 0;
 bool InputManager::_currentlyScrolling = false;
@@ -51,6 +53,7 @@ void InputManager::ProcessKeys(GLFWwindow* window)
     _dPressed = _d;
     _qPressed = _q;
     _ePressed = _e;
+    _rmbPressed = _rmb;
     
     _escape = (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS);
     _tab = (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS);
@@ -61,6 +64,7 @@ void InputManager::ProcessKeys(GLFWwindow* window)
     _d = (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS);
     _q = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS);
     _e = (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS);
+    _rmb = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS);
 }
 
 void InputManager::ProcessMouse(GLFWwindow* window)
@@ -193,6 +197,15 @@ const bool InputManager::EIsDown()
     return _e;
 }
 
+const bool InputManager::RMB()
+{
+    return _rmb && !_rmbPressed;
+}
+
+const bool InputManager::RMBIsDown()
+{
+    return _rmb;
+}
 const float InputManager::DeltaTime()
 {
     return _deltaTime;

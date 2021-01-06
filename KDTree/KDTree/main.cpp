@@ -21,6 +21,7 @@
 #include "SystemManager.h"
 #include "LightSystem.h"
 #include "RendererSystem.h"
+#include <chrono>
 
 GLFWwindow* window;
 
@@ -80,15 +81,39 @@ int main()
 	light->transform.Position = glm::vec3(1.2f, 10.0f, 2.0f);
 	entities.push_back(light);
 
-	Entity* controlledCamera = new Entity();
-	controlledCamera->transform.Position = glm::vec3(-2.0f, 2.0f, 0.0f);
-	controlledCamera->AddComponent<Camera>();
-	controlledCamera->GetComponent<Camera>()->Active = true;
-	entities.push_back(controlledCamera);
+	Entity* camera = new Entity();
+	camera->transform.Position = glm::vec3(-2.0f, 2.0f, 0.0f);
+	camera->AddComponent<Camera>();
+	camera->GetComponent<Camera>()->Active = true;
+	entities.push_back(camera);
+
+
+
+
+
+	Entity* house = new Entity();
+	house->AddComponent<Renderer>();
+	house->GetComponent<Renderer>()->SetModel("resources/models/house.obj");
+	entities.push_back(house);
+
+	Entity* environment = new Entity();
+	environment->AddComponent<Renderer>();
+	environment->GetComponent<Renderer>()->SetModel("resources/models/environment.obj");
+	entities.push_back(environment);
+
+	Entity* decor = new Entity();
+	decor->AddComponent<Renderer>();
+	decor->GetComponent<Renderer>()->SetModel("resources/models/decor.obj");
+	entities.push_back(decor);
+
+	Entity* floor = new Entity();
+	floor->AddComponent<Renderer>();
+	floor->GetComponent<Renderer>()->SetModel("resources/models/floor.obj");
+	entities.push_back(floor);
 
 
 	//Generate Random Boxes
-	
+	/*
 	float lowerBound = -1;
 	float upperBound = 1;
 	for (int i = 0; i < 15; i++) {
@@ -102,25 +127,8 @@ int main()
 		cube->transform.Scale = glm::vec3(0.1f, 0.1f, 0.1f);
 		cube->transform.Position = glm::vec3(x, y, z);
 		entities.push_back(cube);
-	}
-
-
-	/*
-	Entity* house = new Entity();
-	house->AddComponent<Renderer>();
-	house->GetComponent<Renderer>()->SetModel("resources/models/house.obj");
-	entities.push_back(house);
-	
-	Entity* environment = new Entity();
-	environment->AddComponent<Renderer>();
-	environment->GetComponent<Renderer>()->SetModel("resources/models/environment.obj");
-	entities.push_back(environment);
-	
-	Entity* decor = new Entity();
-	decor->AddComponent<Renderer>();
-	decor->GetComponent<Renderer>()->SetModel("resources/models/decor.obj");
-	entities.push_back(decor);*/
-
+	}*/
+	//Test vertices
 	/*std::vector<glm::vec3> vertices{
 		glm::vec3(0,3,1),
 		glm::vec3(1,9,1),
@@ -133,6 +141,7 @@ int main()
 		glm::vec3(8,3,2),
 		glm::vec3(2,3,9),
 	};*/
+	//Random Spheres
 	/*float lowerBound = -1;
 	float upperBound = 1;
 	std::vector<glm::vec3> vertices;
@@ -152,19 +161,24 @@ int main()
 		sphere->transform.Position =v;
 		entities.push_back(sphere);
 	}*/
+
 	auto vertices = SystemManager::RendererSystem.GetAllVertices();
 	auto indices = SystemManager::RendererSystem.GetAllIndices();
+	int approxChildTris = 150;
+	KDTree kd = KDTree(vertices, indices, approxChildTris);
 
-	KDTree kd = KDTree(vertices, indices, 5);
-	
-	auto minTriY = kd.FindMinTriangle(2);
+
+
+	/*auto minTriY = kd.FindMinTriangle(2);
 	std::cout << "Triangle found: " << vec3ToString(minTriY.a)<<" , " << vec3ToString(minTriY.b)<<" , " << vec3ToString(minTriY.c)<<" , " << std::endl;
 	Entity* tMinY = new Entity();
 	tMinY->AddComponent<Triangle>();
 	tMinY->GetComponent<Triangle>()->SetPoints(minTriY.a, minTriY.b, minTriY.c);
 	entities.push_back(tMinY);
+	*/
 
-
+	Entity* rayCastLine = nullptr;
+	Entity* rayCastTriangle = nullptr;
 	while (!glfwWindowShouldClose(window))
 	{
 		glClearColor(0.3f, 0.35f, 0.35f, 1.0f);
@@ -172,6 +186,40 @@ int main()
 
 		InputManager::Update(glfwGetTime(), window);
 		SystemManager::Update();
+
+		if (InputManager::RMBIsDown()) {
+			Ray ray;
+			ray.A = camera->transform.Position;
+			ray.D = camera->GetComponent<Camera>()->WorldFront * camera->transform.Rotation;
+			ray.TMax = 10;
+
+			if (rayCastLine == nullptr) {
+				rayCastLine = new Entity();
+				rayCastLine->AddComponent<Line>();
+				entities.push_back(rayCastLine);
+			}
+			glm::vec3 a = ray.A;
+			glm::vec3 b = ray.A + ray.D * ray.TMax;
+			rayCastLine->GetComponent<Line>()->SetPoints(a, b);
+			rayCastLine->GetComponent<Line>()->Color = glm::vec4(0.0f, 1.0f, 0.2f, 1.0f);
+
+			auto start = std::chrono::high_resolution_clock::now();
+			Hit* hit = kd.RayIntersect(ray);
+			auto end = std::chrono::high_resolution_clock::now();
+			std::cout << "Raycast took: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds." << std::endl;
+			if (hit != nullptr) {
+				if (rayCastTriangle == nullptr) {
+					rayCastTriangle = new Entity();
+					rayCastTriangle->AddComponent<Triangle>(); 
+					entities.push_back(rayCastTriangle);
+				}
+				rayCastTriangle->GetComponent<Triangle>()->SetPoints(hit->Triangle->a, hit->Triangle->b, hit->Triangle->c);
+			}
+			else {
+				std::cout << "nothing hit" << std::endl;
+			}
+		}
+
 		glfwSetWindowShouldClose(window, InputManager::Escape());
 		glfwSwapBuffers(window);
 		glfwPollEvents();

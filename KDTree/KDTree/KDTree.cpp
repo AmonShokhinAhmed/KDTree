@@ -1,16 +1,23 @@
 #include "KDTree.h"
 
-KDTree::KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indices, unsigned int depth, bool visual)
+KDTree::KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indices, unsigned int approxChildTris, bool visual)
 {
+	float depth = (float)indices.size() / 3.0f / (float)approxChildTris;
+	depth = glm::log2(depth);
+	depth+=1;
+	depth = glm::ceil(depth);
+
 	if (vertices.size() <= 0) {
 		return;
 	}
 	insertVerticesAsNode(vertices, 0, vertices.size(), 0, depth);
 	for (int i = 0; i < indices.size(); i += 3) {
-		SimpleTriangle triangle;
-		triangle.a = vertices[indices[i]];
-		triangle.b = vertices[indices[i + 1]];
-		triangle.c = vertices[indices[i + 2]];
+		SimpleTriangle* triangle = new SimpleTriangle();
+		triangle->a = vertices[indices[i]];
+		triangle->b = vertices[indices[i + 1]];
+		triangle->c = vertices[indices[i + 2]];
+		triangle->checked = false;
+		_triangles.push_back(triangle);
 		insertTriangle(root, triangle);
 	}
 	if (visual) {
@@ -18,7 +25,7 @@ KDTree::KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indice
 	}
 }
 
-SimpleTriangle KDTree::FindMinTriangle(unsigned int j)
+SimpleTriangle* KDTree::FindMinTriangle(unsigned int j)
 {
 	return findMinTriangleFromNode(root, j);
 }
@@ -39,12 +46,12 @@ KDTree::~KDTree()
 	_lines.clear();
 }
 
-SimpleTriangle KDTree::findMinTriangleFromNode(Node* node, unsigned int j) {
+SimpleTriangle* KDTree::findMinTriangleFromNode(Node* node, unsigned int j) {
 	if (node == NULL) {
-		SimpleTriangle t;
-		t.a = glm::vec3(INT_MAX);
-		t.b = glm::vec3(INT_MAX);
-		t.c = glm::vec3(INT_MAX);
+		SimpleTriangle* t = new SimpleTriangle();
+		t->a = glm::vec3(INT_MAX);
+		t->b = glm::vec3(INT_MAX);
+		t->c = glm::vec3(INT_MAX);
 		return t;
 	}
 
@@ -53,15 +60,15 @@ SimpleTriangle KDTree::findMinTriangleFromNode(Node* node, unsigned int j) {
 			return findMinChildTriangle(node, j);
 		}
 		else {
-			SimpleTriangle a = findMinChildTriangle(node, j);
-			SimpleTriangle b = findMinTriangleFromNode(node->left, j);
+			SimpleTriangle* a = findMinChildTriangle(node, j);
+			SimpleTriangle* b = findMinTriangleFromNode(node->left, j);
 			return TriangleComparator(j)(a, b) ? a : b;
 		}
 	}
 
-	SimpleTriangle a = findMinChildTriangle(node, j);
-	SimpleTriangle b = findMinTriangleFromNode(node->left, j);
-	SimpleTriangle c = findMinTriangleFromNode(node->right, j);
+	SimpleTriangle* a = findMinChildTriangle(node, j);
+	SimpleTriangle* b = findMinTriangleFromNode(node->left, j);
+	SimpleTriangle* c = findMinTriangleFromNode(node->right, j);
 	return TriangleComparator(j)(a, b) ? (TriangleComparator(j)(a, c) ? a : c) : (TriangleComparator(j)(b, c) ? b : c);
 }
 glm::vec3 KDTree::findMinPointFromNode(Node* node, unsigned int j)
@@ -86,12 +93,12 @@ glm::vec3 KDTree::findMinPointFromNode(Node* node, unsigned int j)
 	glm::vec3 c = findMinPointFromNode(node->right, j);
 	return Vec3Comparator(j)(a, b) ? (Vec3Comparator(j)(a, c) ? a : c) : (Vec3Comparator(j)(b, c) ? b : c);
 }
-SimpleTriangle KDTree::findMinChildTriangle(Node* node, unsigned int j) {
+SimpleTriangle* KDTree::findMinChildTriangle(Node* node, unsigned int j) {
 	if (node->childTriangles == nullptr) {
-		SimpleTriangle t;
-		t.a= glm::vec3(INT_MAX);
-		t.b= glm::vec3(INT_MAX);
-		t.c= glm::vec3(INT_MAX);
+		SimpleTriangle* t = new SimpleTriangle();
+		t->a = glm::vec3(INT_MAX);
+		t->b = glm::vec3(INT_MAX);
+		t->c = glm::vec3(INT_MAX);
 		return t;
 	}
 	auto index = std::min_element(node->childTriangles->begin(), node->childTriangles->end(), TriangleComparator(j));
@@ -99,7 +106,7 @@ SimpleTriangle KDTree::findMinChildTriangle(Node* node, unsigned int j) {
 }
 glm::vec3 KDTree::findMinChildPoint(Node* node, unsigned int j) {
 	auto tri = findMinChildTriangle(node, j);
-	glm::vec3 min = Vec3Comparator(j)(tri.a, tri.b) ? (Vec3Comparator(j)(tri.a, tri.c) ? tri.a : tri.c) : (Vec3Comparator(j)(tri.b, tri.c) ? tri.b : tri.c);
+	glm::vec3 min = Vec3Comparator(j)(tri->a, tri->b) ? (Vec3Comparator(j)(tri->a, tri->c) ? tri->a : tri->c) : (Vec3Comparator(j)(tri->b, tri->c) ? tri->b : tri->c);
 	return min;
 }
 
@@ -131,9 +138,112 @@ glm::vec3 KDTree::findMaxChildPoint(Node* node, unsigned int j) {
 	}
 	auto index = std::max_element(node->childTriangles->begin(), node->childTriangles->end(), TriangleComparator(j));
 	auto tri = node->childTriangles->at(std::distance(node->childTriangles->begin(), index));
-	glm::vec3 max = Vec3Comparator(j)(tri.a, tri.b) ? (Vec3Comparator(j)(tri.b, tri.c) ? tri.c : tri.b) : (Vec3Comparator(j)(tri.a, tri.c) ? tri.c : tri.a);
+	glm::vec3 max = Vec3Comparator(j)(tri->a, tri->b) ? (Vec3Comparator(j)(tri->b, tri->c) ? tri->c : tri->b) : (Vec3Comparator(j)(tri->a, tri->c) ? tri->c : tri->a);
 	return max;
 }
+
+static int intersectedTris = 0;
+#pragma region Ray Intersection
+Hit* KDTree::RayIntersect(Ray ray)
+{
+	intersectedTris = 0;
+	Hit* hit = nullptr;
+	visitNodes(root, ray, hit);
+	for (auto& t : _triangles) {
+		t->checked = false;
+	}
+	return hit;
+}
+void  KDTree::visitNodes(Node* node, Ray ray, Hit*& hit) {
+	if (node == nullptr) {
+		return;
+	}
+	if (hit != nullptr) {
+		return;
+	}
+	intersectNode(node, ray, hit);
+
+	int dim = node->j;
+	int first = ray.A[dim] > node->vertex[dim];
+	Node* children[] = { node->left, node->right };
+	if (ray.D[dim] == 0.0f) {
+		visitNodes(children[first], ray, hit);
+	}
+	else {
+		float t = (node->vertex[dim] - ray.A[dim]) / ray.D[dim];
+		if (0.0f <= t && t < ray.TMax) {
+
+			Ray newRay;
+			newRay.A = ray.A + t * ray.D;
+			newRay.D = ray.D;
+			newRay.TMax = ray.TMax - t;
+
+			ray.TMax = t;
+
+			visitNodes(children[first], ray, hit);
+			visitNodes(children[first ^ 1], newRay, hit);
+		}
+		else {
+			visitNodes(children[first], ray, hit);
+		}
+	}
+}
+void KDTree::intersectNode(Node* node, Ray ray, Hit*& hit)
+{
+	if (node == nullptr || hit != nullptr || node->childTriangles == nullptr) {
+		return;
+	}
+	std::vector<Hit> hits;
+	float curT = ray.TMax;
+	for (auto& triangle : *(node->childTriangles)) {
+		if (!triangle->checked) {
+			float t = intersectTriangle(triangle, ray);
+			if (t >= 0 && curT > t) {
+				curT = t;
+				if (hit == nullptr) {
+					hit = new Hit();
+				}
+				hit->Triangle = triangle;
+				hit->point = ray.A + ray.D * t;
+			}
+			triangle->checked = true;
+		}
+	}
+}
+float KDTree::intersectTriangle(SimpleTriangle*& triangle, Ray ray)
+{
+	intersectedTris++;
+	glm::vec3 BA = triangle->a - triangle->b;
+	glm::vec3 CA = triangle->a - triangle->c;
+	glm::vec3 n = glm::cross(BA, CA);
+	n = glm::normalize(n);
+	float d = glm::dot(n, triangle->a);
+	float denom = glm::dot(n, ray.D);
+	if (denom == 0) {
+		return -1;
+	}
+	float t = (d - glm::dot(n , ray.A)) / denom;
+	glm::vec3 Q = ray.A + ray.D * t;
+
+	glm::vec3 CB = triangle->b - triangle->c;
+	glm::vec3 AC = triangle->c - triangle->a;
+	glm::vec3 QA = triangle->a - Q;
+	glm::vec3 QB = triangle->b - Q;
+	glm::vec3 QC = triangle->c - Q;
+
+	if (glm::dot(glm::cross(BA, QA), n) < 0) {
+		return -1;
+	}
+	if (glm::dot(glm::cross(CB, QB), n) < 0) {
+		return -1;
+	}
+	if (glm::dot(glm::cross(AC, QC), n) < 0) {
+		return -1;
+	}
+
+	return t;
+}
+#pragma endregion
 
 #pragma region Tree Building
 void KDTree::insertVerticesAsNode(std::vector<glm::vec3> vertices, unsigned int start, unsigned int end, unsigned depth, unsigned int maxDepth) {
@@ -237,30 +347,29 @@ void KDTree::insertPoint(Node* node, glm::vec3& point)
 	}
 	return;
 }*/
-void KDTree::insertTriangle(Node* node, SimpleTriangle& triangle) {
+void KDTree::insertTriangle(Node* node, SimpleTriangle*& triangle) {
 	if (node->left == nullptr && node->right == nullptr) {
 		if (node->childTriangles == nullptr) {
-			node->childTriangles = new std::vector<SimpleTriangle>();
+			node->childTriangles = new std::vector<SimpleTriangle*>();
 		}
 		node->childTriangles->push_back(triangle);
 		return;
 	}
 
 
-	bool a = node->vertex[node->j] > triangle.a[node->j];
-	bool b = node->vertex[node->j] > triangle.b[node->j];
-	bool c = node->vertex[node->j] > triangle.c[node->j];
+	bool a = node->vertex[node->j] > triangle->a[node->j];
+	bool b = node->vertex[node->j] > triangle->b[node->j];
+	bool c = node->vertex[node->j] > triangle->c[node->j];
 	bool completelySmaller = (a && b && c);
 	bool completelyBigger = (!a && !b && !c);
 	//left is smaller
 	if (completelySmaller) {
-		//std::cout << " -> left ";
 		if (node->left != nullptr) {
 			insertTriangle(node->left, triangle);
 		}
 		else {
 			if (node->childTriangles == nullptr) {
-				node->childTriangles = new std::vector<SimpleTriangle>();
+				node->childTriangles = new std::vector<SimpleTriangle*>();
 			}
 			node->childTriangles->push_back(triangle);
 			return;
@@ -272,7 +381,7 @@ void KDTree::insertTriangle(Node* node, SimpleTriangle& triangle) {
 		}
 		else {
 			if (node->childTriangles == nullptr) {
-				node->childTriangles = new std::vector<SimpleTriangle>();
+				node->childTriangles = new std::vector<SimpleTriangle*>();
 			}
 			node->childTriangles->push_back(triangle);
 			return;
@@ -287,7 +396,7 @@ void KDTree::insertTriangle(Node* node, SimpleTriangle& triangle) {
 		}
 		if (node->right == nullptr || node->left == nullptr) {
 			if (node->childTriangles == nullptr) {
-				node->childTriangles = new std::vector<SimpleTriangle>();
+				node->childTriangles = new std::vector<SimpleTriangle*>();
 			}
 			node->childTriangles->push_back(triangle);
 			return;
