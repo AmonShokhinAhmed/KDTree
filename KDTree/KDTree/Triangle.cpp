@@ -51,6 +51,9 @@ const void Triangle::Draw()
 
 void Triangle::Update()
 {
+    if (!Active) {
+        return;
+    }
     _shader.use();
     // view/projection transformations
     glm::mat4 projection = glm::perspective(glm::radians(SystemManager::CameraSystem.ActiveCamera()->Zoom), (float)InputManager::SCR_WIDTH / (float)InputManager::SCR_HEIGHT, 0.1f, 100.0f);

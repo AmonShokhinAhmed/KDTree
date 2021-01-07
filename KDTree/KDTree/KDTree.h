@@ -5,6 +5,7 @@
 #include <iomanip>
 
 
+//#define DEBUG_VISUALS
 
 
 struct SimpleTriangle {
@@ -12,6 +13,10 @@ struct SimpleTriangle {
 	glm::vec3 b;
 	glm::vec3 c;
 	bool checked;
+#ifdef DEBUG_VISUALS
+	Entity* debugTriangle;
+#endif // DEBUG_VISUALS
+
 }; 
 struct Ray {
 	glm::vec3 A;
@@ -95,6 +100,9 @@ private:
 	Node* root;
 	std::vector<Entity*> _lines;
 	std::vector<SimpleTriangle*> _triangles;
+#ifdef DEBUG_VISUALS
+	std::vector<Entity*> _debugTriangles;
+#endif // DEBUG_VISUALS
 	SimpleTriangle* findMinTriangleFromNode(Node* node, unsigned int j);
 	glm::vec3 findMinPointFromNode(Node* node, unsigned int j);
 	SimpleTriangle* findMinChildTriangle(Node* node, unsigned int j);

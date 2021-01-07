@@ -27,7 +27,8 @@ public:
     Renderer();
     ~Renderer();
 
-    void SetModel(string const& path);
+    void SetModel(string const& path); 
+    void SetShader(const char* vertPath, const char* fragPath, const char* geoPath);
     virtual void Update() override;
     std::vector<glm::vec3> GetAllVertices();
     std::vector<unsigned int> GetAllIndices();

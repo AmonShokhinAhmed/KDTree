@@ -2,10 +2,11 @@
 
 KDTree::KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indices, unsigned int approxChildTris, bool visual)
 {
-	float depth = (float)indices.size() / 3.0f / (float)approxChildTris;
+	float depth = (float)indices.size() / 3.0f / (float)approxChildTris; 
 	depth = glm::log2(depth);
 	depth+=1;
 	depth = glm::ceil(depth);
+	depth = glm::max(1.0f, depth);
 	if (vertices.size() <= 0) {
 		return;
 	}
@@ -16,6 +17,16 @@ KDTree::KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indice
 		triangle->b = vertices[indices[i + 1]];
 		triangle->c = vertices[indices[i + 2]];
 		triangle->checked = false;
+
+#ifdef DEBUG_VISUALS
+		auto debugTriangle = new Entity();
+		debugTriangle->AddComponent<Triangle>();
+		debugTriangle->GetComponent<Triangle>()->SetPoints(triangle->a, triangle->b, triangle->c);
+		debugTriangle->GetComponent<Triangle>()->Color = glm::vec4(0, 1, 0, 1);
+		debugTriangle->GetComponent<Triangle>()->Active = false;
+		_debugTriangles.push_back(debugTriangle);
+		triangle->debugTriangle = debugTriangle;
+#endif //DEBUG_VISUALS
 		_triangles.push_back(triangle);
 		insertTriangle(root, triangle);
 	}
@@ -141,11 +152,14 @@ glm::vec3 KDTree::findMaxChildPoint(Node* node, unsigned int j) {
 	return max;
 }
 
-static int intersectedTris = 0;
 #pragma region Ray Intersection
 Hit* KDTree::RayIntersect(Ray ray)
 {
-	intersectedTris = 0;
+#ifdef DEBUG_VISUALS
+	for (auto t : _debugTriangles) {
+		t->GetComponent<Triangle>()->Active = false;
+	}
+#endif // DEBUG_VISUALS
 	Hit* hit = nullptr;
 	visitNodes(root, ray, hit);
 	for (auto& t : _triangles) {
@@ -158,7 +172,7 @@ void  KDTree::visitNodes(Node* node, Ray ray, Hit*& hit) {
 		return;
 	}
 	if (hit != nullptr) {
-		return;
+		//return;
 	}
 	intersectNode(node, ray, hit);
 
@@ -171,16 +185,19 @@ void  KDTree::visitNodes(Node* node, Ray ray, Hit*& hit) {
 	else {
 		float t = (node->vertex[dim] - ray.A[dim]) / ray.D[dim];
 		if (0.0f <= t && t < ray.TMax) {
-
-			Ray newRay;
-			newRay.A = ray.A + t * ray.D;
-			newRay.D = ray.D;
-			newRay.TMax = ray.TMax - t;
-
-			ray.TMax = t;
-
+			//Ray firstRay;
+			//firstRay.A = ray.A;
+			//firstRay.D = ray.D;
+			//firstRay.TMax = t;
+			//visitNodes(children[first], firstRay, hit);
 			visitNodes(children[first], ray, hit);
-			visitNodes(children[first ^ 1], newRay, hit);
+
+			//Ray secondRay;
+			//secondRay.A = ray.A + t * ray.D;
+			//secondRay.D = ray.D;
+			//secondRay.TMax = ray.TMax - t;
+			//visitNodes(children[first ^ 1], secondRay, hit);
+			visitNodes(children[first ^ 1], ray, hit);
 		}
 		else {
 			visitNodes(children[first], ray, hit);
@@ -189,15 +206,22 @@ void  KDTree::visitNodes(Node* node, Ray ray, Hit*& hit) {
 }
 void KDTree::intersectNode(Node* node, Ray ray, Hit*& hit)
 {
-	if (node == nullptr || hit != nullptr || node->childTriangles == nullptr) {
+	if (node == nullptr  || node->childTriangles == nullptr) {
 		return;
 	}
-	std::vector<Hit> hits;
-	float curT = ray.TMax;
+	if (hit != nullptr) {
+		//return;
+	}
+	float curT = hit==nullptr?ray.TMax:glm::distance(hit->point,ray.A);
 	for (auto& triangle : *(node->childTriangles)) {
 		if (!triangle->checked) {
+#ifdef DEBUG_VISUALS
+			triangle->debugTriangle->GetComponent<Triangle>()->Active = true;
+#endif // DEBUG_VISUALS
 			float t = intersectTriangle(triangle, ray);
-			if (t >= 0 && curT > t) {
+			if(t!=-1){
+			}
+			if (t >= 0 && curT >= t) {
 				curT = t;
 				if (hit == nullptr) {
 					hit = new Hit();
@@ -211,10 +235,9 @@ void KDTree::intersectNode(Node* node, Ray ray, Hit*& hit)
 }
 float KDTree::intersectTriangle(SimpleTriangle*& triangle, Ray ray)
 {
-	intersectedTris++;
-	glm::vec3 BA = triangle->a - triangle->b;
-	glm::vec3 CA = triangle->a - triangle->c;
-	glm::vec3 n = glm::cross(BA, CA);
+	glm::vec3 AB = triangle->b - triangle->a;
+	glm::vec3 AC = triangle->c - triangle->a;
+	glm::vec3 n = glm::cross(AB, AC);
 	n = glm::normalize(n);
 	float d = glm::dot(n, triangle->a);
 	float denom = glm::dot(n, ray.D);
@@ -224,22 +247,21 @@ float KDTree::intersectTriangle(SimpleTriangle*& triangle, Ray ray)
 	float t = (d - glm::dot(n , ray.A)) / denom;
 	glm::vec3 Q = ray.A + ray.D * t;
 
-	glm::vec3 CB = triangle->b - triangle->c;
-	glm::vec3 AC = triangle->c - triangle->a;
-	glm::vec3 QA = triangle->a - Q;
-	glm::vec3 QB = triangle->b - Q;
-	glm::vec3 QC = triangle->c - Q;
+	glm::vec3 BC = triangle->c - triangle->b;
+	glm::vec3 CA = triangle->a - triangle->c;
+	glm::vec3 AQ = Q-triangle->a;
+	glm::vec3 BQ = Q-triangle->b;
+	glm::vec3 CQ = Q-triangle->c;
 
-	if (glm::dot(glm::cross(BA, QA), n) < 0) {
+	if (glm::dot(glm::cross(AB, AQ), n) < 0) {
 		return -1;
 	}
-	if (glm::dot(glm::cross(CB, QB), n) < 0) {
+	if (glm::dot(glm::cross(BC, BQ), n) < 0) {
 		return -1;
 	}
-	if (glm::dot(glm::cross(AC, QC), n) < 0) {
+	if (glm::dot(glm::cross(CA, CQ), n) < 0) {
 		return -1;
 	}
-
 	return t;
 }
 #pragma endregion
@@ -292,17 +314,14 @@ void KDTree::insertNode(Node*& node, glm::vec3 vertex, unsigned int j)
 		node->left = nullptr;
 		node->right = nullptr;
 		node->childTriangles = nullptr;
-		//std::cout << " -> " << node << "." << std::endl;
 		return;
 	}
 
 	//left is smaller
 	if (Vec3Comparator(node->j)(vertex, node->vertex)) {
-		//std::cout << " -> left ";
 		insertNode(node->left, vertex, j);
 	}
 	else {
-		//std::cout << " -> right ";
 		insertNode(node->right, vertex, j);
 	}
 	return;
@@ -355,10 +374,10 @@ void KDTree::insertTriangle(Node* node, SimpleTriangle*& triangle) {
 		return;
 	}
 
-
 	bool a = node->vertex[node->j] > triangle->a[node->j];
 	bool b = node->vertex[node->j] > triangle->b[node->j];
 	bool c = node->vertex[node->j] > triangle->c[node->j];
+
 	bool completelySmaller = (a && b && c);
 	bool completelyBigger = (!a &&! b && !c);
 	//left is smaller

@@ -109,15 +109,23 @@ int main()
 	entities.push_back(floor);
 
 
+
+	Entity* rayCastLine = nullptr;
+
+	Entity* rayCastSphere = nullptr;
+
+	Entity* rayCastTriangle = new Entity();
+	rayCastTriangle->AddComponent<Triangle>();
+	rayCastTriangle->GetComponent<Triangle>()->Active = false;
+	entities.push_back(rayCastTriangle);
+
+
 	auto vertices = SystemManager::RendererSystem.GetAllVertices();
 	auto indices = SystemManager::RendererSystem.GetAllIndices();
 	int approxChildTris = 500;
 	KDTree kd = KDTree(vertices, indices, approxChildTris);
 
-	Entity* rayCastLine = nullptr;
-	Entity* rayCastTriangle = nullptr;
-	Entity* rayCastSphere = nullptr;
-	Entity* rayCastCamera = nullptr;
+
 	while (!glfwWindowShouldClose(window))
 	{
 		glClearColor(0.3f, 0.35f, 0.35f, 1.0f);
@@ -135,39 +143,40 @@ int main()
 			if (rayCastLine == nullptr) {
 				rayCastLine = new Entity();
 				rayCastLine->AddComponent<Line>();
+				rayCastLine->GetComponent<Line>()->Color = glm::vec4(0.0f, 0.5f, 1.0f, 1.0f);
 				entities.push_back(rayCastLine);
 			}
 			glm::vec3 a = ray.A;
 			glm::vec3 b = ray.A + ray.D * ray.TMax;
 			rayCastLine->GetComponent<Line>()->SetPoints(a, b);
-			rayCastLine->GetComponent<Line>()->Color = glm::vec4(0.0f, 1.0f, 0.2f, 1.0f);
-			
 			
 			if (rayCastSphere == nullptr) {
 				rayCastSphere = new Entity();
 				rayCastSphere->AddComponent<Renderer>();
 				rayCastSphere->GetComponent<Renderer>()->SetModel("resources/models/sphere.obj");
+				rayCastSphere->GetComponent<Renderer>()->Unlit=true;
 				rayCastSphere->GetComponent<Renderer>()->DiffuseColor = glm::vec3(1, 0, 0);
-				rayCastSphere->transform.Scale = glm::vec3(0.05f, 0.05f, 0.05f);
-				entities.push_back(rayCastCamera);
+				entities.push_back(rayCastSphere);
 			}
-			
 
 			auto start = std::chrono::high_resolution_clock::now();
 			Hit* hit = kd.RayIntersect(ray);
 			auto end = std::chrono::high_resolution_clock::now();
-			std::cout << "Raycast took: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds";
+			std::cout << "Raycast with ray: ("<<vec3ToString(ray.A) << ") -> ("<<vec3ToString(ray.D)<<") took:" << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds";
 			if (hit != nullptr) {
-				if (rayCastTriangle == nullptr) {
-					rayCastTriangle = new Entity();
-					rayCastTriangle->AddComponent<Triangle>(); 
-					entities.push_back(rayCastTriangle);
-				}
+				
+				rayCastTriangle->GetComponent<Triangle>()->Active = true;
 				rayCastTriangle->GetComponent<Triangle>()->SetPoints(hit->Triangle->a, hit->Triangle->b, hit->Triangle->c);
 				rayCastSphere->transform.Position = hit->point;
+				float t = glm::distance(ray.A, hit->point);
+				float r = t / ray.TMax;
+				float s = r * 0.05f;
+				rayCastSphere->transform.Scale = glm::vec3(s, s, s);
 				std::cout << " and hit at (" <<vec3ToString(hit->point)<<")."<< std::endl;
 			}
 			else {
+				rayCastTriangle->GetComponent<Triangle>()->Active = false;
+				rayCastSphere->transform.Scale = glm::vec3(0.05f, 0.05f, 0.05f);
 				rayCastSphere->transform.Position = ray.A+ray.D*ray.TMax;
 				std::cout << " and hit nothing." << std::endl;
 			}

@@ -26,6 +26,10 @@ void Renderer::SetModel(string const& path)
 {
     loadModel(path);
 }
+void Renderer::SetShader( const char* vertPath, const char* fragPath, const char* geoPath)
+{
+    _shader = Shader(vertPath, fragPath, geoPath);
+}
 
 
 void Renderer::Update()
