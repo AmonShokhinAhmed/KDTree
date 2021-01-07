@@ -59,6 +59,7 @@
     <ClInclude Include="CameraSystem.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Datastructures.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="InputManager.h" />
     <ClInclude Include="KDTree.h" />
@@ -76,6 +77,7 @@
     <ClInclude Include="Transform.h" />
     <ClInclude Include="Triangle.h" />
     <ClInclude Include="TriangleSystem.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
