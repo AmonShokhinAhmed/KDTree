@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+
 struct SimpleTriangle {
 	glm::vec3 a;
 	glm::vec3 b;

@@ -115,7 +115,12 @@ int main()
 	auto indices = SystemManager::RendererSystem.GetAllIndices();
 	int approxChildTris = 200;
 
-	KDTree kd = KDTree(vertices, indices, approxChildTris, false, VisualMode::BoundingBox, InsertionMode::Triangles);
+	KDTree kd = KDTree(vertices, indices, approxChildTris, false, VisualMode::BoundingBox, InsertionMode::Vertices);
+	/*std::cout << std::endl;
+	KDTree kdb = KDTree(vertices, indices, approxChildTris, false, VisualMode::None, InsertionMode::Indices);
+	std::cout << std::endl;
+	KDTree kdc = KDTree(vertices, indices, approxChildTris, false, VisualMode::None, InsertionMode::Triangles);
+	std::cout << std::endl;*/
 
 	Entity* rayCastSphere = new Entity();
 	rayCastSphere->AddComponent<Renderer>();

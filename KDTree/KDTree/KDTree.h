@@ -3,10 +3,12 @@
 #include "Entity.h";
 #include <sstream>
 #include <iomanip>
-#include "Datastructures.h"
 
 //#define DEBUG_VISUALS
 #define DEBUG_INFORMATION
+
+#include "Datastructures.h"
+
 enum VisualMode {GridPlane, BoundingBox, None};
 enum InsertionMode {Vertices, Indices, Triangles};
 class KDTree

@@ -41,8 +41,9 @@ KDTree::KDTree(std::vector<glm::vec3> vertices, std::vector<unsigned int> indice
 
 #ifdef DEBUG_INFORMATION
 	auto end = std::chrono::high_resolution_clock::now();
-	std::cout << "KDTree building took: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds." << std::endl << std::endl;
-	std::cout << "Depth: " << depth << std::endl;
+	std::cout << "Insert Mode: " << (insertionMode == InsertionMode::Vertices ? "Vertices" : (insertionMode == InsertionMode::Indices ? "Indices" : "Triangles")) << std::endl;
+	std::cout << "KDTree building took: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds." << std::endl ;
+	std::cout << "Approximate amount of child triangles: "<<approxChildTris<<" -> Dynamic depth: " << depth << std::endl;
 	printNodeStatistic();
 #endif // DEBUG_INFORMATION
 }
@@ -172,39 +173,36 @@ void KDTree::insertTrianglesAsNode(Node*& node, std::vector<SimpleTriangle*> tri
 	glm::vec3 currentMin;
 	glm::vec3 currentMax;
 	for (int i = 0; i < 3; i++) {
-		SimpleTriangle* tMin = *std::min_element(triangles.begin() + start, triangles.begin() + end, TrianglePointerComparator(i));
-		SimpleTriangle* tMax = *std::max_element(triangles.begin() + start, triangles.begin() + end, TrianglePointerComparator(i));
+		SimpleTriangle* tMin = *std::min_element(triangles.begin() + start, triangles.begin() + end, TrianglePointerCentroidComparator(i));
+		SimpleTriangle* tMax = *std::max_element(triangles.begin() + start, triangles.begin() + end, TrianglePointerCentroidComparator(i));
 
 		currentMin[i] = glm::min(tMin->a[i],glm::min(tMin->b[i], tMin->c[i]));
-		currentMax[i] = glm::max(tMin->a[i], glm::max(tMin->b[i], tMin->c[i]));
+		currentMax[i] = glm::max(tMax->a[i], glm::max(tMax->b[i], tMax->c[i]));
 	}
-
 	//to calculate the span of the geometry
 	glm::vec3 span = currentMax - currentMin;
-
 	//to find the relevant dimension
 	int j = span.x >= span.y ? (span.x >= span.z ? 0 : 2) : (span.y >= span.z ? 1 : 2);
-
 
 	//find the median
 	int range = end - start;
 	int i = start + ((range) * 0.5f);
-	std::nth_element(triangles.begin() + start, triangles.begin() + i, triangles.begin() + end, TrianglePointerComparator(j));
+	std::nth_element(triangles.begin() + start, triangles.begin() + i, triangles.begin() + end, TrianglePointerCentroidComparator(j));
 	SimpleTriangle* medianTriangle = triangles.at(i);
-	glm::vec3 median = medianTriangle->a + medianTriangle->b + medianTriangle->c;
+	float median = medianTriangle->a[j] + medianTriangle->b[j] + medianTriangle->c[j];
 	median /= 3.0f;
-	
+
 	//if median is not clear use arithmetic mean
 	if (range % 2 == 0) {
-		std::nth_element(triangles.begin() + start, triangles.begin() + i + 1, triangles.begin() + end, TrianglePointerComparator(j));
+		std::nth_element(triangles.begin() + start, triangles.begin() + i + 1, triangles.begin() + end, TrianglePointerCentroidComparator(j));
 		SimpleTriangle* medianTriangleB = triangles.at(i + 1);
-		glm::vec3 medianB = medianTriangleB->a + medianTriangleB->b + medianTriangleB->c;
-		medianB /= 3.0f;
+		float medianB = medianTriangleB->a[j]+ medianTriangleB->b[j]+ medianTriangleB->c[j];
+		medianB /= 3.0f; 
 		median += medianB;
 		median /= 2.0f;
 	}
 	//insert a node using the median
-	node = new Node(median[j], j);
+	node = new Node(median, j);
 	_nodes.push_back(node);
 	//recursively insert more nodes
 	insertTrianglesAsNode(node->Children[0], triangles, start, i, depth + 1, maxDepth);
@@ -462,7 +460,7 @@ float KDTree::intersectTriangle(SimpleTriangle*& triangle, Ray ray)
 	glm::vec3 AQ = Q - triangle->a;
 	glm::vec3 BQ = Q - triangle->b;
 	glm::vec3 CQ = Q - triangle->c;
-
+	
 	if (glm::dot(glm::cross(AB, AQ), n) < 0) {
 		return -1;
 	}
@@ -688,7 +686,7 @@ SimpleTriangle* KDTree::findMinChildTriangle(Node* node, unsigned int j) {
 		return nullptr;
 	}
 	//find lowest triangle using std::min_element function and custom comparator
-	auto index = std::min_element(node->ChildTriangles->begin(), node->ChildTriangles->end(), TrianglePointerComparator(j));
+	auto index = std::min_element(node->ChildTriangles->begin(), node->ChildTriangles->end(), TrianglePointerAbsolutComparator(j));
 	return node->ChildTriangles->at(std::distance(node->ChildTriangles->begin(), index));
 }
 
@@ -737,7 +735,7 @@ SimpleTriangle* KDTree::findMaxChildTriangle(Node* node, unsigned int j) {
 		return nullptr;
 	}
 	//find highest triangle using std::max_element function and custom comparator
-	auto index = std::max_element(node->ChildTriangles->begin(), node->ChildTriangles->end(), TrianglePointerComparator(j));
+	auto index = std::max_element(node->ChildTriangles->begin(), node->ChildTriangles->end(), TrianglePointerAbsolutComparator(j));
 	return node->ChildTriangles->at(std::distance(node->ChildTriangles->begin(), index));
 }
 
