@@ -6,3 +6,7 @@ void LineSystem::Update()
 		l->Update();
 	}
 }
+
+void LineSystem::ComponentCheck()
+{
+}

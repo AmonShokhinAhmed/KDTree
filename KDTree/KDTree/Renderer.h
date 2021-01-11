@@ -22,22 +22,30 @@ public:
     glm::vec3 DiffuseColor;
     glm::vec3 SpecularColor;
     float Shininess;
-    bool Unlit;
+    bool Lit;
+    bool CastShadow;
+    bool ReceiveShadow;
 
     Renderer();
     ~Renderer();
 
     void SetModel(string const& path); 
-    void SetShader(const char* vertPath, const char* fragPath, const char* geoPath);
+
+    void SetTextures(char const* diffuseMapPath, char const* normalMapPath);
+
     virtual void Update() override;
+    void Render(const Shader& shader);
     std::vector<glm::vec3> GetAllVertices();
     std::vector<unsigned int> GetAllIndices();
 
 private:
     
     Shader _shader;
-    
-    void loadModel();
+
+    bool _diffuseSet = false;
+    unsigned int _diffuseMap;
+    bool _normalSet = false;
+    unsigned int _normalMap;
     void loadModel(string const& path);
     void processNode(aiNode* node, const aiScene* scene);
     Mesh processMesh(aiMesh* mesh, const aiScene* scene);

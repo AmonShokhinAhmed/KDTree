@@ -33,9 +33,13 @@
     <None Include="line.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AnimatedCamera.cpp" />
+    <ClCompile Include="AnimatedCameraPoint.cpp" />
+    <ClCompile Include="AnimatedCameraPointSystem.cpp" />
     <ClCompile Include="CameraSystem.cpp" />
     <ClCompile Include="Component.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="ControlledCamera.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="InputManager.cpp" />
@@ -56,9 +60,13 @@
     <ClCompile Include="TriangleSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AnimatedCamera.h" />
+    <ClInclude Include="AnimatedCameraPoint.h" />
+    <ClInclude Include="AnimatedCameraPointSystem.h" />
     <ClInclude Include="CameraSystem.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="ControlledCamera.h" />
     <ClInclude Include="Datastructures.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="InputManager.h" />

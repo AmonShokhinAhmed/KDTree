@@ -6,3 +6,7 @@ void TriangleSystem::Update()
 		t->Update();
 	}
 }
+
+void TriangleSystem::ComponentCheck()
+{
+}

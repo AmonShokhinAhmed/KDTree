@@ -17,3 +17,7 @@ void CameraSystem::Update()
 		c->Update();
 	}
 }
+void CameraSystem::ComponentCheck()
+{
+
+}

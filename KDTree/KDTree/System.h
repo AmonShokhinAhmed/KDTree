@@ -8,11 +8,15 @@ class System
 protected:
 	std::vector<T*> _components;
 public:
-	
-	virtual void Update() = 0;
 
-	void AddComponent(T* component) {
+	virtual void ComponentCheck() = 0;
+	virtual void Update() = 0;
+	virtual void Reset() {
+		_components.clear();
+	}
+	virtual void AddComponent(T* component) {
 		_components.push_back(component);
+		ComponentCheck();
 	}
 
 	void RemoveComponent(T* component) {

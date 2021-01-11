@@ -1,5 +1,6 @@
 #include "KDTree.h"
 #include "Utils.h"
+#include "Line.h"
 #include <chrono>
 
 #pragma region Constructor/Destructor
